@@ -9,7 +9,7 @@ import {
   IconMessageStar,
   IconRoute,
   IconSearch,
-  IconSettings
+  IconSettings,
 } from "@tabler/icons-react";
 import * as React from "react";
 
@@ -21,7 +21,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 
@@ -31,11 +31,6 @@ const data = {
       title: "Dashboard",
       url: "/admin",
       icon: IconDashboard,
-    },
-    {
-      title: "Destinations",
-      url: "/admin/destinations",
-      icon: IconMapPin,
     },
     {
       title: "Tours",
@@ -68,11 +63,6 @@ const data = {
       title: "Get Help",
       url: "#",
       icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
     },
   ],
 };

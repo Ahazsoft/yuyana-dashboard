@@ -239,7 +239,7 @@ export default function ToursPage() {
 
                     <div className="grid grid-cols-2 gap-6">
                       <div className="grid gap-2">
-                        <Label className="text-sm font-semibold">Price ($)</Label>
+                        <Label className="text-sm font-semibold">Price (ETB)</Label>
                         <Input type="number" placeholder="750" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="h-11 rounded-xl" />
                       </div>
                       <div className="grid gap-2">

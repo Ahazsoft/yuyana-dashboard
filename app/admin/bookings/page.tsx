@@ -46,6 +46,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: BookingStatus[] = [
@@ -141,7 +149,7 @@ export default function BookingsPage() {
       }>
       <AppSidebar variant='inset' />
       <SidebarInset>
-        <div className='min-h-screen bg-slate-50/50 dark:bg-zinc-950/50 pt-6'>
+        <div className='min-h-screen bg-slate-50/50 dark:bg-zinc-950/50 pt-6 max-w-7xl mx-auto'>
           <div className='px-6 mb-8'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6'>
               <div>
@@ -204,149 +212,154 @@ export default function BookingsPage() {
 
           <div className='px-6 pb-20'>
             <div className='bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden'>
-              <div className='overflow-x-auto'>
-                <table className='w-full text-left border-collapse'>
-                  <thead>
-                    <tr className='border-b border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50'>
-                      <th className='px-6 py-4 text-sm font-semibold'>
-                        Customer
-                      </th>
-                      <th className='px-6 py-4 text-sm font-semibold'>
-                        Tour & Date
-                      </th>
-                      <th className='px-6 py-4 text-sm font-semibold'>
-                        Guests
-                      </th>
-                      <th className='px-6 py-4 text-sm font-semibold'>
-                        Total Price
-                      </th>
-                      <th className='px-6 py-4 text-sm font-semibold'>
-                        Status
-                      </th>
-                      <th className='px-6 py-4 text-sm font-semibold text-right'>
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBookings.length > 0 ? (
-                      filteredBookings.map((booking) => (
-                        <tr
-                          key={booking.id}
-                          className='border-b border-slate-100 dark:border-zinc-800/50 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors'>
-                          <td className='px-6 py-4'>
-                            <div className='flex flex-col'>
-                              <span className='font-semibold text-slate-900 dark:text-zinc-100'>
-                                {booking.customerName}
-                              </span>
-                              <span className='text-xs text-muted-foreground flex items-center mt-1'>
-                                <Mail className='w-3 h-3 mr-1' />
-                                {booking.customerEmail}
-                              </span>
-                            </div>
-                          </td>
-                          <td className='px-6 py-4'>
-                            <div className='flex flex-col'>
-                              <span className='font-medium text-slate-700 dark:text-zinc-300'>
-                                {booking.tourTitle}
-                              </span>
-                              <span className='text-xs text-muted-foreground flex items-center mt-1'>
-                                <Calendar className='w-3 h-3 mr-1' />
-                                {booking.travelDate}
-                              </span>
-                            </div>
-                          </td>
-                          <td className='px-6 py-4'>
-                            <div className='flex items-center gap-1.5'>
-                              <Users className='w-4 h-4 text-muted-foreground' />
-                              <span className='text-sm font-medium'>
-                                {booking.guests}
-                              </span>
-                            </div>
-                          </td>
-                          <td className='px-6 py-4'>
-                            <span className='font-bold text-slate-900 dark:text-zinc-100'>
-                              ${booking.totalPrice.toLocaleString()}
+              <Table>
+                <TableHeader>
+                  <TableRow className='bg-slate-50/50 dark:bg-zinc-800/50 hover:bg-slate-50/50 dark:hover:bg-zinc-800/50'>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Customer
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Contact Info
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Tour & Date
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Guests
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Total Price
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold h-auto'>
+                      Status
+                    </TableHead>
+                    <TableHead className='px-6 py-4 text-sm font-semibold text-right h-auto'>
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.length > 0 ? (
+                    filteredBookings.map((booking) => (
+                      <TableRow
+                        key={booking.id}
+                        className='border-b border-slate-100 dark:border-zinc-800/50 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors'>
+                        <TableCell className='px-6 py-4'>
+                          <span className='font-semibold text-slate-900 dark:text-zinc-100'>
+                            {booking.customerName}
+                          </span>
+                        </TableCell>
+                        <TableCell className='px-6 py-4'>
+                          <div className='flex flex-col gap-1'>
+                            <span className='text-xs text-muted-foreground flex items-center'>
+                              <Mail className='w-3 h-3 mr-1.5 text-primary' />
+                              {booking.customerEmail}
                             </span>
-                          </td>
-                          <td className='px-6 py-4'>
-                            {getStatusBadge(booking.status)}
-                          </td>
-                          <td className='px-6 py-4 text-right'>
-                            <div className='flex justify-end items-center gap-2'>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                className='rounded-lg h-9 w-9 p-0'
-                                onClick={() => {
-                                  setSelectedBooking(booking);
-                                  setIsDetailsOpen(true);
-                                }}>
-                                <Eye className='w-4 h-4 text-muted-foreground' />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='rounded-lg h-9 w-9 p-0'>
-                                    <MoreVertical className='w-4 h-4 text-muted-foreground' />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align='end'
-                                  className='w-48 rounded-xl p-2 drop-shadow-2xl'>
-                                  <DropdownMenuLabel className='font-bold'>
-                                    Change Status
-                                  </DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {STATUS_OPTIONS.map((status) => (
-                                    <DropdownMenuItem
-                                      key={status}
-                                      onClick={() =>
-                                        handleStatusChange(booking.id, status)
-                                      }
-                                      className={cn(
-                                        "rounded-lg capitalize transition-colors",
-                                        booking.status === status &&
-                                          "bg-primary/10 text-primary font-medium",
-                                      )}>
-                                      {status}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className='py-20 text-center'>
-                          <div className='bg-slate-50 dark:bg-zinc-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner'>
-                            <Search className='w-8 h-8 text-muted-foreground opacity-20' />
+                            <span className='text-xs text-muted-foreground flex items-center'>
+                              <Phone className='w-3 h-3 mr-1.5 text-primary' />
+                              {booking.customerPhone}
+                            </span>
                           </div>
-                          <h3 className='text-lg font-bold'>
-                            No bookings found
-                          </h3>
-                          <p className='text-muted-foreground mt-1'>
-                            Try adjusting your filters or search terms.
-                          </p>
-                          <Button
-                            variant='outline'
-                            className='mt-4 rounded-xl px-6'
-                            onClick={() => {
-                              setSearchQuery("");
-                              setSelectedStatus("All");
-                            }}>
-                            Clear all filters
-                          </Button>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                        </TableCell>
+                        <TableCell className='px-6 py-4'>
+                          <div className='flex flex-col gap-1'>
+                            <span className='font-medium text-slate-700 dark:text-zinc-300'>
+                              {booking.tourTitle}
+                            </span>
+                            <span className='text-xs text-muted-foreground flex items-center'>
+                              <Calendar className='w-3 h-3 mr-1.5 text-primary' />
+                              {booking.travelDate}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className='px-6 py-4'>
+                          <div className='flex items-center gap-1.5'>
+                            <Users className='w-4 h-4 text-muted-foreground' />
+                            <span className='text-sm font-medium'>
+                              {booking.guests}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className='px-6 py-4'>
+                          <span className='font-bold text-slate-900 dark:text-zinc-100'>
+                            {booking.totalPrice.toLocaleString()} ETB
+                          </span>
+                        </TableCell>
+                        <TableCell className='px-6 py-4'>
+                          {getStatusBadge(booking.status)}
+                        </TableCell>
+                        <TableCell className='px-6 py-4 text-right'>
+                          <div className='flex justify-end items-center gap-2'>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='rounded-lg h-9 w-9 p-0'
+                              onClick={() => {
+                                setSelectedBooking(booking);
+                                setIsDetailsOpen(true);
+                              }}>
+                              <Eye className='w-4 h-4 text-muted-foreground' />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  className='rounded-lg h-9 w-9 p-0'>
+                                  <MoreVertical className='w-4 h-4 text-muted-foreground' />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align='end'
+                                className='w-48 rounded-xl p-2 drop-shadow-2xl'>
+                                <DropdownMenuLabel className='font-bold'>
+                                  Change Status
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {STATUS_OPTIONS.map((status) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    onClick={() =>
+                                      handleStatusChange(booking.id, status)
+                                    }
+                                    className={cn(
+                                      "rounded-lg capitalize transition-colors",
+                                      booking.status === status &&
+                                        "bg-primary/10 text-primary font-medium",
+                                    )}>
+                                    {status}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className='py-20 text-center'>
+                        <div className='bg-slate-50 dark:bg-zinc-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner'>
+                          <Search className='w-8 h-8 text-muted-foreground opacity-20' />
+                        </div>
+                        <h3 className='text-lg font-bold'>No bookings found</h3>
+                        <p className='text-muted-foreground mt-1'>
+                          Try adjusting your filters or search terms.
+                        </p>
+                        <Button
+                          variant='outline'
+                          className='mt-4 rounded-xl px-6'
+                          onClick={() => {
+                            setSearchQuery("");
+                            setSelectedStatus("All");
+                          }}>
+                          Clear all filters
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>
@@ -439,7 +452,7 @@ export default function BookingsPage() {
                             Total Amount
                           </p>
                           <p className='text-2xl font-black text-primary'>
-                            ${selectedBooking.totalPrice.toLocaleString()}
+                            {selectedBooking.totalPrice.toLocaleString()} ETB
                           </p>
                         </div>
                       </div>

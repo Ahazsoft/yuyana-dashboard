@@ -87,7 +87,7 @@ export function TourCard({ tour, onEdit }: TourCardProps) {
       <CardFooter className='p-4 pt-0 flex items-center justify-between border-t border-border/40 mt-auto pt-4'>
         <div>
           <p className='text-xs text-muted-foreground'>Starting from</p>
-          <p className='text-xl font-bold text-primary'>${tour.price}</p>
+          <p className='text-xl font-bold text-primary'>{tour.price} ETB</p>
         </div>
         {/* <Button size="sm" className="rounded-full px-4 group/btn">
           Book Now
