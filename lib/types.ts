@@ -11,3 +11,20 @@ export interface Tour {
   reviewsCount: number;
   tags?: string[];
 }
+
+export type BookingStatus = 'new' | 'contacted' | 'confirmed' | 'canceled';
+
+export interface Booking {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  tourId: string;
+  tourTitle: string;
+  bookingDate: string;
+  travelDate: string;
+  guests: number;
+  totalPrice: number;
+  status: BookingStatus;
+  message?: string;
+}
