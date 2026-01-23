@@ -3,7 +3,9 @@
 import Link from "next/link";
 
 import * as React from "react";
-import { type Icon } from "@tabler/icons-react";
+import { type Icon, IconLogout } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 import {
   SidebarGroup,
@@ -23,6 +25,18 @@ export function NavSecondary({
     icon: Icon;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/admin/login");
+        },
+      },
+    });
+  };
+
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
@@ -37,6 +51,12 @@ export function NavSecondary({
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout}>
+              <IconLogout />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
