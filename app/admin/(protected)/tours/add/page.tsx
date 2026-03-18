@@ -2,7 +2,7 @@
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import TourForm from "@/components/tours/TourForm";
+import AddTourForm from "@/components/tours/AddTourForm";
 
 export default function AddTourPage() {
   return (
@@ -14,7 +14,7 @@ export default function AddTourPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <TourForm mode="create" />
+        <AddTourForm />
       </SidebarInset>
     </SidebarProvider>
   );

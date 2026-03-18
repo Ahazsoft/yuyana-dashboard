@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import React, { useState } from "react";
 import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import type { TourPackage } from "@/app/data/mockTours";
 import { useRouter } from "next/navigation";
-
-interface TourFormProps {
-  initialData?: TourPackage;
-  mode: "create" | "edit";
-}
 
 interface DayForm {
   dayNumber: number;
@@ -23,71 +18,30 @@ interface DayForm {
   boldtext: string;
 }
 
-const TourForm = ({ initialData, mode }: TourFormProps) => {
+const AddTourForm = () => {
   const router = useRouter();
-  const isEdit = mode === "edit";
 
-  // Basic fields
-  const [title, setTitle] = useState(initialData?.tourTitle ?? "");
-  const [slug, setSlug] = useState(initialData?.slugUrl ?? "");
-  const [description, setDescription] = useState(
-    initialData?.tourDescription ?? "",
-  );
-  const [destination, setDestination] = useState(
-    initialData?.tourDestination ?? "",
-  );
-  const [duration, setDuration] = useState<string>(
-    initialData?.tourDuration?.toString() ?? "",
-  );
-  const [rating, setRating] = useState<string>(
-    initialData?.tourRating?.toString() ?? "",
-  );
-  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl ?? "");
-  const [documentUrl, setDocumentUrl] = useState(
-    initialData?.tourDocumentUrl ?? "",
-  );
-  const [included, setIncluded] = useState<string[]>(
-    initialData?.included?.length ? initialData.included : [""],
-  );
-  const [excluded, setExcluded] = useState<string[]>(
-    initialData?.excluded?.length ? initialData.excluded : [""],
-  );
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [destination, setDestination] = useState("");
+  const [duration, setDuration] = useState("");
 
-  // Pricing
-  const initPrice = initialData?.tourPrice as Record<string, unknown> | null;
-  const [advancedPricing, setAdvancedPricing] = useState(() => {
-    return initPrice ? Object.keys(initPrice).length > 1 : false;
-  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
-  // Default price (simple mode)
-  const [standardPrice, setStandardPrice] = useState<string>(
-    initPrice?.price?.toString() ?? "",
-  );
+  const [included, setIncluded] = useState<string[]>([""]);
+  const [excluded, setExcluded] = useState<string[]>([""]);
 
-  // Advanced pricing fields
-  const [adultPrice, setAdultPrice] = useState<string>(
-    initPrice?.adultprice?.toString() ?? "",
-  );
-  const [kidsPrice, setKidsPrice] = useState<string>(
-    initPrice?.kidprice?.toString() ?? "",
-  );
-  const [priceTag, setPriceTag] = useState<string>(
-    initPrice?.pricetag?.toString() ?? "",
-  );
+  const [advancedPricing, setAdvancedPricing] = useState(false);
+  const [standardPrice, setStandardPrice] = useState("");
+  const [adultPrice, setAdultPrice] = useState("");
+  const [kidsPrice, setKidsPrice] = useState("");
+  const [priceTag, setPriceTag] = useState("");
 
-  // Itinerary days
-  const [days, setDays] = useState<DayForm[]>(() => {
-    if (initialData?.tourPlanDays?.length) {
-      return initialData.tourPlanDays.map((d) => ({
-        dayNumber: d.dayNumber,
-        title: d.title ?? "",
-        description: d.description ?? "",
-        items: d.items.length ? d.items : [""],
-        boldtext: d.boldtext ?? "",
-      }));
-    }
-    return [];
-  });
+  const [days, setDays] = useState<DayForm[]>([]);
 
   const addDay = () => {
     setDays((prev) => [
@@ -110,7 +64,11 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
     );
   };
 
-  const updateDay = (idx: number, field: keyof DayForm, value: unknown) => {
+  const updateDay = (
+    idx: number,
+    field: keyof DayForm,
+    value: string | string[],
+  ) => {
     setDays((prev) =>
       prev.map((d, i) => (i === idx ? { ...d, [field]: value } : d)),
     );
@@ -137,67 +95,179 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
     setter((prev) => prev.map((v, i) => (i === idx ? val : v)));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "image" | "document",
+  ) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    if (type === "image") {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setImageUrl(reader.result as string); // required preview
+      reader.readAsDataURL(file);
+    } else if (type === "document") {
+      setDocumentFile(file);
+
+      // Just display the filename as a placeholder
+      setDocumentUrl(file.name);
+    }
+    // For document, you can allow null
+  };
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   let tourPrice: Record<string, unknown> = {};
+
+  //   if (!advancedPricing) {
+  //     tourPrice = {
+  //       price: parseFloat(standardPrice) || 0,
+  //       adultprice: 0,
+  //       kidprice: 0,
+  //       pricetag: 0,
+  //     };
+  //   } else {
+  //     tourPrice = {
+  //       price: 0,
+  //       adultprice: adultPrice ? parseFloat(adultPrice) : 0,
+  //       kidprice: kidsPrice ? parseFloat(kidsPrice) : 0,
+  //       pricetag: priceTag ? parseFloat(priceTag) : 0,
+  //     };
+
+  //     const hasAdultKids =
+  //       (tourPrice.adultprice as number) > 0 ||
+  //       (tourPrice.kidprice as number) > 0;
+  //     const hasPriceTag = (tourPrice.pricetag as number) > 0;
+
+  //     if (!hasAdultKids && !hasPriceTag) {
+  //       alert("Please fill either Adult/Kids prices or the Price Tag.");
+  //       return;
+  //     }
+  //   }
+  //   function generateSlug(text: string) {
+  //     return text
+  //       .toLowerCase() // normalize to lowercase
+  //       .trim() // remove leading/trailing spaces
+  //       .replace(/[^a-z0-9\s-]/g, "") // remove anything that's not a-z, 0-9, space or dash
+  //       .replace(/\s+/g, "-") // replace spaces with dash
+  //       .replace(/-+/g, "-"); // collapse multiple dashes
+  //   }
+
+  //   const formData = {
+  //     tourTitle: title,
+  //     slugUrl: slug,
+  //     tourDescription: description || null,
+  //     tourDestination: destination,
+  //     tourDuration: duration ? parseInt(duration) : 1,
+  //     imageUrl: imageUrl,
+  //     tourDocumentUrl: documentUrl || null,
+  //     tourPrice,
+  //     included: included.filter(Boolean),
+  //     excluded: excluded.filter(Boolean),
+  //     tourPlanDays: days.map((d) => ({
+  //       dayNumber: d.dayNumber,
+  //       title: d.title || null,
+  //       description: d.description || null,
+  //       items: d.items.filter(Boolean),
+  //       boldtext: d.boldtext || null,
+  //     })),
+  //   };
+
+  //   try {
+  //     const response = await fetch("/api/tours/add", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(formData),
+  //     });
+
+  //     const result = await response.json();
+
+  //     if (!response.ok) {
+  //       alert(result.message || "Failed to create tour");
+  //       return;
+  //     }
+
+  //     alert("Tour created successfully!");
+  //     router.push("/admin/tours");
+  //   } catch (error) {
+  //     console.error("Error creating tour:", error);
+  //     alert("Something went wrong while creating the tour.");
+  //   }
+  //   router.push("/admin/tours");
+  // };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Build price object based on mode
-    let tourPrice: Record<string, unknown> = {};
+    // Build the JSON parts as strings
+    const tourPriceObj = advancedPricing
+      ? {
+          price: 0,
+          adultprice: adultPrice ? parseFloat(adultPrice) : 0,
+          kidprice: kidsPrice ? parseFloat(kidsPrice) : 0,
+          pricetag: priceTag ? parseFloat(priceTag) : 0,
+        }
+      : {
+          price: parseFloat(standardPrice) || 0,
+          adultprice: 0,
+          kidprice: 0,
+          pricetag: 0,
+        };
 
-    if (!advancedPricing) {
-      // Simple mode – only price field
-      tourPrice = { price: parseFloat(standardPrice) || 0 };
-    } else {
-      // Advanced mode – include all fields, default to 0 if empty
-      tourPrice = {
-        price: 0, // always include with default 0
-        adultprice: adultPrice ? parseFloat(adultPrice) : 0,
-        kidprice: kidsPrice ? parseFloat(kidsPrice) : 0,
-        pricetag: priceTag ? parseFloat(priceTag) : 0,
-      };
+    const includedFiltered = included.filter(Boolean);
+    const excludedFiltered = excluded.filter(Boolean);
+    const tourPlanDaysFiltered = days.map((d) => ({
+      dayNumber: d.dayNumber,
+      title: d.title || null,
+      description: d.description || null,
+      items: d.items.filter(Boolean),
+      boldtext: d.boldtext || null,
+    }));
 
-      // Optional: validate that at least one of adult+ kids or priceTag has a value > 0
-      const hasAdultKids =
-        (tourPrice.adultprice as number) > 0 ||
-        (tourPrice.kidprice as number) > 0;
-      const hasPriceTag = (tourPrice.pricetag as number) > 0;
-      if (!hasAdultKids && !hasPriceTag) {
-        alert("Please fill either Adult/Kids prices or the Price Tag.");
+    // Create FormData and append fields
+    const formData = new FormData();
+    formData.append("slugUrl", slug);
+    formData.append("tourTitle", title);
+    formData.append("tourDestination", destination);
+    if (description) formData.append("tourDescription", description);
+    if (duration) formData.append("tourDuration", duration);
+    formData.append("included", JSON.stringify(includedFiltered));
+    formData.append("excluded", JSON.stringify(excludedFiltered));
+    formData.append("tourPrice", JSON.stringify(tourPriceObj));
+    formData.append("tourPlanDays", JSON.stringify(tourPlanDaysFiltered));
+
+    // Append files if selected
+    if (imageFile) formData.append("image", imageFile);
+    if (documentFile) formData.append("document", documentFile);
+
+    try {
+      const response = await fetch("/api/tours/add", {
+        method: "POST",
+        body: formData, // no Content-Type header – browser sets it with boundary
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(result.error || "Failed to create tour");
         return;
       }
+
+      alert("Tour created successfully!");
+      // router.push("/admin/tours");
+    } catch (error) {
+      console.error("Error creating tour:", error);
+      alert("Something went wrong while creating the tour.");
     }
-
-    const formData = {
-      tourTitle: title,
-      slugUrl: slug,
-      tourDescription: description || null,
-      tourDestination: destination,
-      tourDuration: duration ? parseInt(duration) : null,
-      tourRating: rating ? parseFloat(rating) : null,
-      imageUrl: imageUrl || null,
-      tourDocumentUrl: documentUrl || null,
-      tourPrice,
-      included: included.filter(Boolean),
-      excluded: excluded.filter(Boolean),
-      tourPlanDays: days.map((d) => ({
-        dayNumber: d.dayNumber,
-        title: d.title || null,
-        description: d.description || null,
-        items: d.items.filter(Boolean),
-        boldtext: d.boldtext || null,
-      })),
-    };
-
-    console.log("Form submitted:", formData);
-    alert(
-      `Tour ${isEdit ? "updated" : "created"} successfully! (check console for data)`,
-    );
-    router.push("/admin/tours");
   };
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-3xl">
-        {/* Back + Title */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -208,13 +278,10 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back to Tours
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">
-            {isEdit ? "Edit Tour" : "Add New Tour"}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Add New Tour</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* General Info */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <h2 className="text-lg font-semibold text-foreground">
               General Information
@@ -228,7 +295,6 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder="e.g. Historical Tour of Ethiopia"
               />
             </div>
 
@@ -239,21 +305,19 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 required
-                placeholder="e.g. historical-tour-ethiopia"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Describe the tour..."
               />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="destination">Destination *</Label>
@@ -276,28 +340,37 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="imageUrl">Image URL (optional)</Label>
-              <Input
-                id="imageUrl"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2 ">
+                <Label>Tour Image</Label>
+                <input
+                  className="border border-black px-3 py-1 rounded"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, "image")}
+                />
+                {imageUrl && (
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="mt-2 max-h-40 rounded-md"
+                  />
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="documentUrl">Document URL (optional)</Label>
-              <Input
-                id="documentUrl"
-                value={documentUrl}
-                onChange={(e) => setDocumentUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <div className="space-y-2">
+                <Label>Tour Document</Label>
+                <input
+                  className="border border-black px-3 py-1 rounded"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => handleFileChange(e, "document")}
+                />
+                {documentUrl && <p className="mt-1 text-sm">{documentUrl}</p>}
+              </div>
             </div>
           </section>
 
-          {/* Pricing */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Pricing</h2>
@@ -327,16 +400,13 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                   step={0.01}
                   value={standardPrice}
                   onChange={(e) => setStandardPrice(e.target.value)}
-                  placeholder="e.g. 1200"
                 />
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="adultPrice">
-                      Adult Price ($) (optional)
-                    </Label>
+                    <Label htmlFor="adultPrice">Adult Price ($)</Label>
                     <Input
                       id="adultPrice"
                       type="number"
@@ -344,11 +414,10 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                       step={0.01}
                       value={adultPrice}
                       onChange={(e) => setAdultPrice(e.target.value)}
-                      placeholder="e.g. 800"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="kidsPrice">Kids Price ($) (optional)</Label>
+                    <Label htmlFor="kidsPrice">Kids Price ($)</Label>
                     <Input
                       id="kidsPrice"
                       type="number"
@@ -356,11 +425,10 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                       step={0.01}
                       value={kidsPrice}
                       onChange={(e) => setKidsPrice(e.target.value)}
-                      placeholder="e.g. 400"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="priceTag">Price Tag ($) (optional)</Label>
+                    <Label htmlFor="priceTag">Price Tag ($)</Label>
                     <Input
                       id="priceTag"
                       type="number"
@@ -368,22 +436,16 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                       step={0.01}
                       value={priceTag}
                       onChange={(e) => setPriceTag(e.target.value)}
-                      placeholder="e.g. 1200"
                     />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Fill either Adult + Kids <strong>or</strong> Price Tag. Empty
-                  fields will be stored as 0.
-                </p>
               </div>
             )}
           </section>
 
-          {/* Included / Excluded */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <h2 className="text-lg font-semibold text-foreground">
-              Included & Excluded (optional)
+              Included & Excluded
             </h2>
             <Separator />
 
@@ -397,7 +459,6 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                       onChange={(e) =>
                         updateListItem(setIncluded, idx, e.target.value)
                       }
-                      placeholder="e.g. Hotel"
                     />
                     {included.length > 1 && (
                       <Button
@@ -430,7 +491,6 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                       onChange={(e) =>
                         updateListItem(setExcluded, idx, e.target.value)
                       }
-                      placeholder="e.g. Flights"
                     />
                     {excluded.length > 1 && (
                       <Button
@@ -456,11 +516,10 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
             </div>
           </section>
 
-          {/* Itinerary */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
-                Itinerary (optional)
+                Itinerary
               </h2>
               <Button
                 type="button"
@@ -474,7 +533,7 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
             <Separator />
 
             {days.length === 0 && (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="py-4 text-center text-sm text-muted-foreground">
                 No days added yet. Click "Add Day" to start building the
                 itinerary.
               </p>
@@ -484,7 +543,7 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
               {days.map((day, idx) => (
                 <div
                   key={idx}
-                  className="rounded-md border border-black bg-background p-4 space-y-3"
+                  className="space-y-3 rounded-md border border-black bg-background p-4"
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-primary">
@@ -502,38 +561,33 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">Title (optional)</Label>
+                      <Label className="text-xs">Title</Label>
                       <Input
                         value={day.title}
                         onChange={(e) =>
                           updateDay(idx, "title", e.target.value)
                         }
-                        placeholder="e.g. Arrival Day"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">
-                        Important Note (optional)
-                      </Label>
+                      <Label className="text-xs">Important Note</Label>
                       <Input
                         value={day.boldtext}
                         onChange={(e) =>
                           updateDay(idx, "boldtext", e.target.value)
                         }
-                        placeholder="e.g. Highlight"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Description (optional)</Label>
+                    <Label className="text-xs">Description</Label>
                     <Textarea
                       value={day.description}
                       onChange={(e) =>
                         updateDay(idx, "description", e.target.value)
                       }
                       rows={2}
-                      placeholder="What happens on this day..."
                     />
                   </div>
 
@@ -548,7 +602,6 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
                             newItems[iIdx] = e.target.value;
                             updateDay(idx, "items", newItems);
                           }}
-                          placeholder="e.g. Airport pickup"
                         />
                         {day.items.length > 1 && (
                           <Button
@@ -583,7 +636,6 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
             </div>
           </section>
 
-          {/* Submit */}
           <div className="flex justify-end gap-3 pb-8">
             <Button
               type="button"
@@ -592,9 +644,7 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
             >
               Cancel
             </Button>
-            <Button type="submit">
-              {isEdit ? "Update Tour" : "Create Tour"}
-            </Button>
+            <Button type="submit">Create Tour</Button>
           </div>
         </form>
       </div>
@@ -602,4 +652,4 @@ const TourForm = ({ initialData, mode }: TourFormProps) => {
   );
 };
 
-export default TourForm;
+export default AddTourForm;

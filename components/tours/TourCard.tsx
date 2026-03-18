@@ -2,14 +2,34 @@ import { MapPin, Clock, Star } from "lucide-react";
 import type { TourPackage } from "@/app/data/mockTours";
 import Link from "next/link";
 
-interface TourCardProps {
-  tour: TourPackage;
-}
 
-const TourCard = ({ tour }: TourCardProps) => {
+
+const TourCard = ({ tour }: any) => {
   const price = tour.tourPrice as Record<string, number> | null;
-  const displayPrice = price?.price ?? null;
+  // Compute display values
+  const displayPrice = () => {
+    if (!price) return null;
 
+    const normal = Number(price.price ?? 0);
+    const adult = Number(price.adultprice ?? 0);
+    const kid = Number(price.kidprice ?? 0);
+    const tag = Number(price.pricetag ?? 0);
+
+    // If only normal price exists
+    if (normal > 0 && adult === 0 && kid === 0 && tag === 0) {
+      return `$${normal.toLocaleString()}`;
+    }
+
+    // Advanced / detailed pricing
+    const parts: string[] = [];
+    if (adult > 0) parts.push(`Adult: $${adult.toLocaleString()}`);
+    if (kid > 0) parts.push(`Kid: $${kid.toLocaleString()}`);
+    // if (tag > 0) parts.push(`Starting from $${tag.toLocaleString()}`);
+    if (tag > 0) parts.push(`$${tag.toLocaleString()}`);
+
+    return parts.join(" | ") || null;
+  };
+    
   return (
     <Link
       href={`/admin/tours/edit/${tour.id}`}
@@ -28,10 +48,10 @@ const TourCard = ({ tour }: TourCardProps) => {
             No Image
           </div>
         )}
-        {tour.tourRating && (
+        {tour.ratings && (
           <span className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-card/90 px-2 py-0.5 text-xs font-semibold backdrop-blur-sm">
             <Star className="h-3 w-3 fill-success text-success" />
-            {tour.tourRating}
+            {tour.ratings}
           </span>
         )}
       </div>
@@ -53,9 +73,9 @@ const TourCard = ({ tour }: TourCardProps) => {
               {tour.tourDuration} days
             </span>
           )}
-          {displayPrice !== null && (
+          {displayPrice() && (
             <span className="text-lg font-bold text-success">
-              ${displayPrice.toLocaleString()}
+              {displayPrice()}
             </span>
           )}
         </div>
