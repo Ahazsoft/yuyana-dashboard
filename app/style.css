@@ -1,0 +1,128 @@
+/* Custom styles for Tours pages */
+
+/* Grid card enhancements */
+.tour-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tour-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12) !important;
+}
+
+.tour-card .card-img-top {
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 1px solid #eee;
+}
+
+.tour-card .card-body {
+  padding: 1.25rem;
+}
+
+.tour-card .tour-meta {
+  display: flex;
+  gap: 1rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.tour-card .tour-meta i {
+  margin-right: 0.25rem;
+}
+
+.tour-card .tour-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.tour-card .tour-rating {
+  background-color: #ffc107;
+  color: #212529;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Form styling */
+.form-section {
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  overflow: hidden;
+}
+
+.form-section .section-header {
+  background-color: #f8f9fa;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.form-section .section-body {
+  padding: 1.5rem;
+}
+
+/* Dynamic list item groups */
+.list-item-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.list-item-group .form-control {
+  flex: 1;
+}
+
+.list-item-group .btn-remove {
+  flex-shrink: 0;
+}
+
+/* Day itinerary card */
+.day-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.day-title {
+  font-weight: 600;
+  color: #0d6efd;
+  margin: 0;
+}
+
+/* Pricing radio */
+.pricing-options {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tour-card .card-img-top {
+    height: 160px;
+  }
+  
+  .form-section .section-body {
+    padding: 1rem;
+  }
+}

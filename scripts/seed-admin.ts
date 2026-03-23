@@ -3,9 +3,9 @@ import { auth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
 
 async function main() {
-  // const email = "admin@yuyana.com";
-  // const password = "password123";
-  // const name = "Admin User";
+  const email = "admin@yuyana.com";
+  const password = "password123";
+  const name = "Admin User";
 
 
   const existingUser = await prisma.user.findUnique({
