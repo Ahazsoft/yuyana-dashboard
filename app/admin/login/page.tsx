@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,19 +19,27 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setLoading(true)
     
-    await authClient.signIn.email({
-      email,
-      password,
-    }, {
-      onSuccess: () => {
-        toast.success("Login successful")
-        router.push("/admin")
-      },
-      onError: (ctx) => {
-        toast.error(ctx.error.message)
-        setLoading(false)
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed")
       }
-    })
+
+      toast.success("Login successful")
+      router.push("/admin")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "An unexpected error occurred")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

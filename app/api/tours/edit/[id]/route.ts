@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@/lib/generated/prisma/client";
+import { Prisma } from "@prisma/client";
 
 async function ensureDir(dir: string) {
   try { await mkdir(dir, { recursive: true }); } catch {}
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const tour = await prisma.tourPackage.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { tourPlanDays: { orderBy: { dayNumber: "asc" } } },
     });
     if (!tour) return NextResponse.json({ error: "Not found" }, { status: 404 });
