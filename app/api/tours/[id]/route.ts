@@ -1,201 +1,113 @@
-import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@/lib/generated/prisma/client";
+import { getAuthUser, requireRole } from "@/lib/auth/require-role";
+import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
-async function ensureDir(dir: string) {
-  try { await mkdir(dir, { recursive: true }); } catch {}
-}
+const updateSchema = z.object({
+  tourTitle: z.string().min(1).optional(),
+  tourDestination: z.string().min(1).optional(),
+  tourDuration: z.number().int().min(1).optional(),
+  tourDescription: z.string().optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  tourPrice: z.any().optional(),
+  included: z.array(z.string()).optional(),
+  excluded: z.array(z.string()).optional(),
+  // slugUrl and isPublished are handled separately (isPublished via /publish route)
+});
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> } // 👈 params is a Promise
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  const { id } = await params;
+  const auth = getAuthUser(req);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const tour = await prisma.tourPackage.findUnique({
+  const tour = await prisma.tourPackage.findUnique({
+    where: { id },
+    include: {
+      tourPlanDays: { orderBy: { dayNumber: "asc" } },
+      bookings: {
+        select: { id: true, status: true, travelDate: true, customer: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 10, // Just show recent 10 bookings on the tour detail page
+      },
+      _count: { select: { bookings: true } },
+    },
+  });
+
+  if (!tour) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(tour);
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const auth = getAuthUser(req);
+  const forbidden = requireRole(req, "ADMIN", "MARKETING");
+  if (forbidden) return forbidden;
+
+  const body = await req.json().catch(() => null);
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  try {
+    const updated = await prisma.tourPackage.update({
       where: { id },
-      include: { tourPlanDays: { orderBy: { dayNumber: "asc" } } },
+      data: parsed.data,
     });
-    if (!tour) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    await logAudit({
+      actorId: auth!.userId,
+      action: "tour.updated",
+      entityType: "TourPackage",
+      entityId: id,
+      meta: { fieldsUpdated: Object.keys(parsed.data) },
+    });
+
+    return NextResponse.json(updated);
+  } catch (err: any) {
+    if (err.code === "P2025") return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const auth = getAuthUser(req);
+  const forbidden = requireRole(req, "ADMIN");
+  if (forbidden) return forbidden; // Only ADMIN can delete tours
+
+  try {
+    // We should probably check if there are existing bookings before hard deleting,
+    // or rely on Prisma relations (if onDelete is not Cascade, it will throw).
+    const bookingsCount = await prisma.booking.count({ where: { tourPackageId: id } });
+    if (bookingsCount > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete a tour package that has existing bookings. Please unpublish it instead." },
+        { status: 400 }
+      );
     }
-    return NextResponse.json(tour);
-  } catch (error) {
-    console.error("GET error:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
-}
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const formData = await request.formData();
-    const { id } = await params;
+    await prisma.tourPackage.delete({ where: { id } });
 
-    const safeParse = (val: FormDataEntryValue | null, fallback = null) => {
-      if (!val) return fallback;
-      try { return JSON.parse(val as string); } catch { return fallback; }
-    };
-
-    const slugUrl = formData.get("slugUrl") as string;
-    const tourTitle = formData.get("tourTitle") as string;
-    const tourDestination = formData.get("tourDestination") as string;
-    const tourDescription = formData.get("tourDescription") as string | null;
-    const tourDurationStr = formData.get("tourDuration") as string;
-    const tourDuration = tourDurationStr ? Number(tourDurationStr) : null;
-
-    const included = safeParse(formData.get("included"), []);
-    const excluded = safeParse(formData.get("excluded"), []);
-    const tourPrice = safeParse(formData.get("tourPrice"), null);
-    const tourPlanDays = safeParse(formData.get("tourPlanDays"), []);
-
-    if (!slugUrl || !tourTitle || !tourDestination) 
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-
-
-    // Files
-    const imageFile = formData.get("image") as File | null;
-    const documentFile = formData.get("document") as File | null;
-    const existingImageUrl = formData.get("imageUrl") as string | null;
-    const existingDocumentUrl = formData.get("documentUrl") as string | null;
-
-    const imagesDir = path.join(process.cwd(), "public/images");
-    const documentsDir = path.join(process.cwd(), "public/documents");
-    await ensureDir(imagesDir);
-    await ensureDir(documentsDir);
-
-    let imageUrl: string | null = null;
-    let tourDocumentUrl: string | null = null;
-
-    if (imageFile && imageFile instanceof File) {
-      const bytes = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fileName = `${Date.now()}-${imageFile.name.replace(/\s/g, "_")}`;
-      await writeFile(path.join(imagesDir, fileName), buffer);
-      imageUrl = `/images/${fileName}`;
-    } else imageUrl = existingImageUrl;
-
-    if (documentFile && documentFile instanceof File) {
-      const bytes = await documentFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fileName = `${Date.now()}-${documentFile.name.replace(/\s/g, "_")}`;
-      await writeFile(path.join(documentsDir, fileName), buffer);
-      tourDocumentUrl = `/documents/${fileName}`;
-    } else tourDocumentUrl = existingDocumentUrl;
-
-    const updatedTour = await prisma.$transaction(async (tx) => {
-      await tx.tourPlanDay.deleteMany({ where: { tourPackageId: id } });
-      return tx.tourPackage.update({
-        where: { id },
-        data: {
-          slugUrl, tourTitle, tourDestination, imageUrl, tourDescription,
-          tourDuration, tourPrice: tourPrice ?? Prisma.DbNull,
-          included, excluded, tourDocumentUrl,
-          tourPlanDays: { create: tourPlanDays.map((d: any) => ({
-            dayNumber: d.dayNumber, title: d.title, description: d.description,
-            items: d.items, boldtext: d.boldtext,
-          })) },
-        },
-        include: { tourPlanDays: { orderBy: { dayNumber: "asc" } } },
-      });
+    await logAudit({
+      actorId: auth!.userId,
+      action: "tour.deleted",
+      entityType: "TourPackage",
+      entityId: id,
     });
 
-    return NextResponse.json(updatedTour);
-  } catch (error) {
-    console.error("PUT error:", error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
-      return NextResponse.json({ error: "Duplicate slug" }, { status: 409 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  try {
-    await prisma.tourPackage.delete({ where: { id: params.id } });
-    return new NextResponse(null, { status: 204 });
-  } catch (error) {
-    console.error(error);
+    return NextResponse.json({ ok: true });
+  } catch {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }
-
-// import { NextResponse } from "next/server";
-// import prisma from "@/lib/prisma";
-// import { Prisma } from '@/lib/generated/prisma/client';
-
-// export async function GET(
-//   request: Request,
-//   { params }: { params: { id: string } },
-// ) {
-//   try {
-//     const tour = await prisma.tourPackage.findUnique({
-//       where: { id: params.id },
-//       include: { tourPlanDays: { orderBy: { dayNumber: "asc" } } },
-//     });
-//     if (!tour) {
-//       return NextResponse.json({ error: "Not found" }, { status: 404 });
-//     }
-//     return NextResponse.json(tour);
-//   } catch (error) {
-//     return NextResponse.json({ error: "Internal error" }, { status: 500 });
-//   }
-// }
-
-
-
-
-// export async function PUT(
-//   request: Request,
-//   { params }: { params: { id: string } },
-// ) {
-//   try {
-//     const body = await request.json();
-
-//     const updated = await prisma.tourPackage.update({
-//       where: { id: params.id },
-//       data: {
-//         slugUrl: body.slugUrl,
-//         tourTitle: body.tourTitle,
-//         tourDestination: body.tourDestination,
-//         imageUrl: body.imageUrl ?? null,
-//         tourDescription: body.tourDescription ?? null,
-//         tourDuration: body.tourDuration ?? null,
-//         tourPrice: body.tourPrice ?? Prisma.DbNull,
-//         included: body.included ?? [],
-//         excluded: body.excluded ?? [],
-//         tourDocumentUrl: body.tourDocumentUrl ?? null,
-//         tourPlanDays: {
-//           deleteMany: {}, // remove old days
-//           create: body.tourPlanDays.map((day: any) => ({
-//             dayNumber: day.dayNumber,
-//             title: day.title,
-//             description: day.description,
-//             items: day.items,
-//             boldtext: day.boldtext,
-//           })),
-//         },
-//       },
-//       include: { tourPlanDays: { orderBy: { dayNumber: "asc" } } },
-//     });
-//     return NextResponse.json(updated);
-//   } catch (error) {
-//     // handle errors
-//     return NextResponse.json({ error: "Update failed" }, { status: 500 });
-//   }
-// }
-
-// export async function DELETE(
-//   request: Request,
-//   { params }: { params: { id: string } },
-// ) {
-//   try {
-//     await prisma.tourPackage.delete({
-//       where: { id: params.id },
-//     });
-//     return new NextResponse(null, { status: 204 }); // No content
-//   } catch (error) {
-//     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
-//   }
-// }

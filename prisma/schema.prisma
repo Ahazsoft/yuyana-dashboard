@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -45,12 +45,26 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PaymentProvider {
+  CHAPA
+  STRIPE
+  PAYPAL
+  MANUAL
+}
+
 enum CampaignStatus {
   DRAFT
   SCHEDULED
   RUNNING
   COMPLETED
   PAUSED
+}
+
+enum SubscriptionStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
 }
 
 // ----- EXISTING TOUR TABLES (with added relation to Review) -----
@@ -63,6 +77,7 @@ model TourPackage {
   tourDuration    Int?     @map("tour_duration")
   tourDestination String   @map("tour_destination")
   tourPrice       Json?    @map("tour_price") // JSONB
+  isPublished     Boolean  @default(false) @map("is_published")
   included        String[]
   excluded        String[]
   tourDocumentUrl String?  @map("tour_document_url")
@@ -95,128 +110,116 @@ model TourPlanDay {
 
 // ----- NEW CRM TABLES -----
 model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String
+  name                 String
+  role                 UserRole  @default(VIEWER)
+  active               Boolean   @default(true)
+  lastLoginAt          DateTime?
+  failedLoginCount     Int       @default(0)
+  lockedUntil          DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  customers      Customer[]
+  leads          Lead[]
+  bookings       Booking[]
+  campaigns      Campaign[]
+  emailLogs      EmailLog[]
+  refreshTokens  RefreshToken[]
+  auditLogs      AuditLog[]
+  segments       Segment[]
+  automationRules AutomationRule[]
+
+  @@index([email])
+  @@index([role])
+  @@index([active])
+}
+
+model RefreshToken {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole @default(VIEWER)
-  active    Boolean  @default(true)
+  userId    String
+  tokenHash String   @unique // SHA-256 hash of the raw refresh token
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  customers Customer[]
-  leads     Lead[]
-  bookings  Booking[]
-  campaigns Campaign[]
-  emailLogs EmailLog[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([email])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
-model Customer {
+model AuditLog {
   id         String   @id @default(cuid())
-  firstName  String
-  lastName   String
-  email      String   @unique
-  phone      String?
-  company    String?
-  country    String?
-  city       String?
-  postalCode String?
-  address    String?
-  notes      String?
-  status     String   @default("active")
-  createdBy  String
+  actorId    String?  // nullable for system/unauthenticated actions
+  action     String   // e.g. "lead.status_changed", "user.login", "campaign.sent"
+  entityType String?  // e.g. "Lead", "Booking", "User"
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  meta       Json?    // additional context
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
-  user        User      @relation(fields: [createdBy], references: [id])
-  leads       Lead[]
-  bookings    Booking[]
-  payments    Payment[]
-  reviews     Review[] // optional: if registered customer leaves a review
-  ratings     TourRating[]   // ratings given by this customer
-  @@index([email])
-  @@index([createdBy])
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
 
-model Lead {
-  id             String     @id @default(cuid())
-  customerId     String
-  customersCount Int        @default(1)
-  source         String?
-  title          String?
-  description    String?
-  status         LeadStatus @default(NEW)
-  value          Float      @default(0)
-  conversionDate DateTime?
-  createdBy      String
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [createdBy], references: [id])
-
-  @@index([customerId])
-  @@index([createdBy])
-  @@index([status])
+model ContactMessage {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  name        String
+  email       String
+  message     String
 }
 
 model Booking {
-  id             String        @id @default(cuid())
-  customerId     String
-  tourPackageId  String        @map("tour_package_id") @db.Uuid // 🔹 must match UUID type of TourPackage.id
-  userId         String
-  numberOfGuests Int
-  status         BookingStatus @default(INQUIRY)
-  totalPrice     Float
-  bookingDate    DateTime      @default(now())
-  travelDate     DateTime?
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  customerId        String
+  tourPackageId     String        @map("tour_package_id") @db.Uuid
+  userId            String        // Added missing field
+  numberOfGuests    Int
+  status            BookingStatus @default(INQUIRY)
+  agreedPrice       Float         // snapshot of price at booking time (HLD requirement)
+  totalPrice        Float
+  currency          String        @default("ETB")
+  bookingDate       DateTime      @default(now())
+  travelDate        DateTime?
+  notes             String?
+  paymentLinkUrl    String?       // generated payment link URL
+  paymentReference  String?       // provider's payment reference ID
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tourPackage TourPackage @relation(fields: [tourPackageId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
+  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tourPackage TourPackage       @relation(fields: [tourPackageId], references: [id])
+  user        User              @relation(fields: [userId], references: [id])
   payments    Payment[]
+  activities  BookingActivity[]
 
   @@index([customerId])
   @@index([tourPackageId])
   @@index([userId])
   @@index([status])
+  @@index([travelDate])
 }
 
-model Payment {
-  id            String        @id @default(cuid())
-  bookingId     String?
-  customerId    String
-  amount        Float
-  currency      String        @default("USD")
-  status        PaymentStatus @default(PENDING)
-  method        String? // e.g. "STRIPE", "CHAPA", "PAYPAL"
-  transactionId String?
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  booking  Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@index([bookingId])
-  @@index([customerId])
-  @@index([status])
-}
-
-// Campaigns are now only for email marketing (no CampaignType enum)
 model Campaign {
   id            String         @id @default(cuid())
   name          String
   status        CampaignStatus @default(DRAFT)
   description   String?
-  subject       String? // email subject
-  content       String? // email body (HTML or text)
-  targetSegment String? // JSON criteria for recipient selection
+  subject       String?        // email subject
+  content       String?        // email body (HTML or text)
+  segmentId     String?        // linked Segment model
+  targetSegment Json?          // inline criteria (used if segmentId is null)
+  recipientCount Int           @default(0)
   createdBy     String
   scheduledDate DateTime?
   sentDate      DateTime?
@@ -224,10 +227,13 @@ model Campaign {
   updatedAt     DateTime       @updatedAt
 
   user      User       @relation(fields: [createdBy], references: [id])
+  segment   Segment?   @relation(fields: [segmentId], references: [id])
   emailLogs EmailLog[]
 
   @@index([createdBy])
   @@index([status])
+  @@index([segmentId])
+  @@index([scheduledDate])
 }
 
 model EmailLog {
@@ -251,7 +257,6 @@ model EmailLog {
   @@index([status])
 }
 
-// Replaces Testimonial – now called Review
 model Review {
   id            String   @id @default(cuid())
   customerId    String? // if the reviewer is a registered customer
@@ -273,17 +278,95 @@ model Review {
   @@map("reviews")
 }
 
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  userId      String?  // Added missing field
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings    Booking[]
+  reviews     Review[]
+  ratings     TourRating[]
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  customerId  String
+  userId      String?  // Added missing field
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer    Customer @relation(fields: [customerId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
+  leadActivity LeadActivity[] // Added opposite relation
+}
+
 model TourRating {
-  id              String     @id @default(cuid())
-  tourPackageId   String     @map("tour_package_id") @db.Uuid
-  rating          Int        // 1-5
-  customerId      String     // 🔹 required – only logged‑in customers can rate
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  id          String   @id @default(cuid())
+  tourId      String
+  customerId  String
+  rating      Int
+  createdAt   DateTime @default(now())
 
-  tourPackage     TourPackage @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  customer        Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tour        Tour     @relation(fields: [tourId], references: [id])
+  customer    Customer @relation(fields: [customerId], references: [id])
+}
 
-  @@unique([tourPackageId, customerId]) // 🔹 one rating per customer per tour
-  @@index([tourPackageId])
-  @@map("tour_ratings")
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads       Lead[]
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  condition   String
+  action      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  segmentId   String?
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  segment     Segment? @relation(fields: [segmentId], references: [id])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  customerId  String?
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer    Customer? @relation(fields: [customerId], references: [id])
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings    Booking[]
+  reviews     Review[]
+  ratings     TourRating[]
 }

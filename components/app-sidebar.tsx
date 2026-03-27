@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 
+// Adding mock data for customers, leads, and other sections
 const data = {
   navMain: [
     {
@@ -33,35 +34,35 @@ const data = {
       icon: IconDashboard,
     },
     {
+      title: "Leads",
+      url: "/admin/leads",
+      icon: IconSearch,
+    },
+    {
+      title: "Customers",
+      url: "/admin/customers",
+      icon: IconHelp,
+    },
+    {
       title: "Tours",
       url: "/admin/tours",
-      icon: IconRoute,
+      icon: IconMapPin,
     },
     {
       title: "Bookings",
       url: "/admin/bookings",
       icon: IconCalendarCheck,
     },
-    {
-      title: "Payments",
-      url: "/admin/payments",
-      icon: IconCreditCard,
-    },
-    {
-      title: "Reviews",
-      url: "/admin/reviews",
-      icon: IconMessageStar,
-    },
   ],
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/admin/settings",
       icon: IconSettings,
     },
     {
-      title: "Get Help",
-      url: "#",
+      title: "Help",
+      url: "/admin/help",
       icon: IconHelp,
     },
   ],

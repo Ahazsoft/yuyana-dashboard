@@ -1,17 +1,26 @@
-// @ts-ignore
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from "./generated/prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+  pool: Pool | undefined;
+};
 
 const connectionString = process.env.DATABASE_URL;
 
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+if (!globalForPrisma.pool) {
+  globalForPrisma.pool = new Pool({ connectionString });
+}
 
-// This configuration satisfies the TypeScript requirement for an adapter
-const prisma = new PrismaClient({
-  adapter: adapter,
-  log: ['query', 'info', 'warn', 'error'],
-});
+const adapter = new PrismaPg(globalForPrisma.pool as any);
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+  } as any);
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;

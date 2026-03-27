@@ -29,6 +29,7 @@ const TourCard = ({ tour }: any) => {
 
     return parts.join(" | ") || null;
   };
+  
     
   return (
     <Link

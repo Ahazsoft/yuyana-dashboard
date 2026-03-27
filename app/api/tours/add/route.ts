@@ -1,7 +1,7 @@
 // // app/api/tours/add/route.ts
 // import { NextResponse } from "next/server";
 // import prisma from "@/lib/prisma"; // adjust path to your prisma instance
-// import { Prisma } from "@/lib/generated/prisma/client";
+// import { Prisma } from "@prisma/client";
 
 
 
@@ -112,7 +112,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@/lib/generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 // Helper to ensure directory exists
 async function ensureDir(dir: string) {

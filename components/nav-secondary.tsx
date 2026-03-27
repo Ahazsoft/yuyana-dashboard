@@ -5,7 +5,6 @@ import Link from "next/link";
 import * as React from "react";
 import { type Icon, IconLogout } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
 
 import {
   SidebarGroup,
@@ -28,13 +27,9 @@ export function NavSecondary({
   const router = useRouter();
 
   const handleLogout = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/admin/login");
-        },
-      },
-    });
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+    router.refresh();
   };
 
   return (
