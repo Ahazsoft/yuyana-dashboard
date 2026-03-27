@@ -8,8 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Zap, Save, Trash2 } from "lucide-react";
 
+export type RuleType = {
+  id: string;
+  name: string;
+  trigger: string;
+  emailSubject: string;
+  emailTemplateId: string;
+  active: boolean;
+};
+
 export default function AutomationPage() {
-  const [rules, setRules] = useState<any[]>([]);
+  const [rules, setRules] = useState<RuleType[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRule, setNewRule] = useState({
     name: "",
@@ -109,9 +118,9 @@ export default function AutomationPage() {
               Event: lead.created <br/>
               Data: customer_email, lead_id <br/>
               --- <br/>
-              Action: Send "Welcome to Yuyana!"
+              Action: Send &quot;Welcome to Yuyana!&quot;
             </div>
-            <p>Coming Soon: Dynamic template selection and conditional logic (e.g., only send if country is "USA").</p>
+            <p>Coming Soon: Dynamic template selection and conditional logic (e.g., only send if country is &quot;USA&quot;).</p>
           </CardContent>
         </Card>
       </div>

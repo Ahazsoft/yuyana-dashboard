@@ -8,10 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { mockTours } from "@/app/data/mockTours";
 import TourCard from "@/components/tours/TourCard";
-
 
 interface Tour {
   id: string;
@@ -19,8 +16,8 @@ interface Tour {
   tourDestination: string;
   imageUrl:string;
   tourDuration: number;
-  tourPrice:any;
-  ratings: any;
+  tourPrice: number | string;
+  ratings: number;
 }
 
 export default function ToursPage() {

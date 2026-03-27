@@ -26,7 +26,12 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await res.json()
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Login failed")

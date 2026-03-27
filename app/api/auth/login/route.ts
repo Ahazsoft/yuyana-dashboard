@@ -36,18 +36,31 @@ export async function POST(req: NextRequest) {
 
   const { email, password } = parsed.data;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      password: true,
-      role: true,
-      active: true,
-      failedLoginCount: true,
-      lockedUntil: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        role: true,
+        active: true,
+        failedLoginCount: true,
+        lockedUntil: true,
+      },
+    });
+  } catch (err) {
+    console.error("[Login] Database error:", err);
+    return NextResponse.json(
+      { error: "Internal server error (database)" },
+      { status: 500 }
+    );
+  }
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   // Account locked?
   if (user?.lockedUntil && user.lockedUntil > new Date()) {
@@ -67,10 +80,14 @@ export async function POST(req: NextRequest) {
     if (user) {
       const newCount = (user.failedLoginCount ?? 0) + 1;
       const lockedUntil = newCount >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { failedLoginCount: newCount, lockedUntil },
-      });
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginCount: newCount, lockedUntil },
+        });
+      } catch (err) {
+        console.error("[Login] Failed to update failedLoginCount:", err);
+      }
     }
     await logAudit({
       action: "user.login_failed",
@@ -92,22 +109,31 @@ export async function POST(req: NextRequest) {
   }
 
   // Reset failed count + update lastLoginAt
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
+    });
+  } catch (err) {
+    console.error("[Login] Failed to reset failedLoginCount:", err);
+  }
 
   // Issue tokens
   const accessToken = await signAccessToken(user.id, user.role, user.email);
   const { raw: refreshRaw, hash: refreshHash } = await generateRefreshToken();
 
-  await prisma.refreshToken.create({
-    data: {
-      userId: user.id,
-      tokenHash: refreshHash,
-      expiresAt: refreshTokenExpiresAt(),
-    },
-  });
+  try {
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: refreshHash,
+        expiresAt: refreshTokenExpiresAt(),
+      },
+    });
+  } catch (err) {
+    console.error("[Login] Failed to create refresh token:", err);
+    return NextResponse.json({ error: "Internal server error (token)" }, { status: 500 });
+  }
 
   await setAuthCookies(accessToken, refreshRaw);
 

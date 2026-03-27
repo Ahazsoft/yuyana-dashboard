@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetch("/api/leads")
@@ -42,12 +44,22 @@ export default function LeadsPage() {
                 </thead>
                 <tbody>
                   {leads.map((l) => (
-                    <tr key={l.id} className="border-b dark:border-gray-700">
-                      <td className="px-6 py-4 font-medium">{l.title || "Untitled Lead"}</td>
-                      <td className="px-6 py-4">{l.customer?.firstName} {l.customer?.lastName}</td>
-                      <td className="px-6 py-4">${l.value.toLocaleString()}</td>
+                    <tr key={l.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                      <td className="px-6 py-4 font-medium">{l.title || "Inquiry from " + l.customer?.firstName}</td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{l.customer?.firstName} {l.customer?.lastName}</span>
+                          <span className="text-xs text-muted-foreground">{l.customer?.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs">{l.currency} {l.value.toLocaleString()}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                          l.status === 'NEW' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                          l.status === 'WON' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          l.status === 'LOST' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                          'bg-secondary text-secondary-foreground'
+                        }`}>
                           {l.status}
                         </span>
                       </td>
@@ -65,7 +77,11 @@ export default function LeadsPage() {
             </div>
           )}
         </CardContent>
+        <CardFooter>
+          <Button onClick={() => setShowForm(true)}>Add Lead</Button>
+        </CardFooter>
       </Card>
+      {showForm && <LeadForm onClose={() => setShowForm(false)} />}
     </div>
   );
 }

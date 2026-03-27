@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetch("/api/customers")
@@ -42,12 +44,22 @@ export default function CustomersPage() {
                 </thead>
                 <tbody>
                   {customers.map((c) => (
-                    <tr key={c.id} className="border-b dark:border-gray-700">
-                      <td className="px-6 py-4">{c.firstName} {c.lastName}</td>
-                      <td className="px-6 py-4">{c.email}</td>
-                      <td className="px-6 py-4">{c.phone || "-"}</td>
+                    <tr key={c.id} className="border-b transition-colors hover:bg-muted/50">
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            {c.firstName?.[0]}{c.lastName?.[0]}
+                          </div>
+                          <span className="font-medium text-foreground">{c.firstName} {c.lastName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">{c.email}</td>
+                      <td className="px-6 py-4 text-xs font-mono">{c.phone || "-"}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          c.status === 'ACTIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          'bg-secondary text-secondary-foreground'
+                        }`}>
                           {c.status}
                         </span>
                       </td>
@@ -62,6 +74,8 @@ export default function CustomersPage() {
                   )}
                 </tbody>
               </table>
+              <Button onClick={() => setShowForm(true)}>Add Customer</Button>
+              {showForm && <CustomerForm onClose={() => setShowForm(false)} />}
             </div>
           )}
         </CardContent>

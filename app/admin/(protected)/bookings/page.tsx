@@ -177,7 +177,7 @@ export default function BookingsPage() {
                 <Select
                   value={selectedStatus}
                   onValueChange={setSelectedStatus}>
-                  <SelectTrigger className='w-[180px] h-12 rounded-xl bg-slate-50 dark:bg-zinc-800/50 border-none'>
+                  <SelectTrigger className='w-45 h-12 rounded-xl bg-slate-50 dark:bg-zinc-800/50 border-none'>
                     <Filter className='w-4 h-4 mr-2 text-muted-foreground' />
                     <SelectValue placeholder='All Status' />
                   </SelectTrigger>
@@ -466,7 +466,7 @@ export default function BookingsPage() {
                         Customer Message
                       </h4>
                       <div className='bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-2xl p-5 italic text-slate-700 dark:text-zinc-300'>
-                        "{selectedBooking.message}"
+                        {selectedBooking.message}
                       </div>
                     </div>
                   )}
