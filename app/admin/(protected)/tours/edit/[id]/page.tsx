@@ -12,7 +12,8 @@ export default function EditTourPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/tours/${id}`)
+    // Fetch the tour using the ID (UUID) from the URL
+    fetch(`/api/tours/edit/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Tour not found");
         return res.json();
@@ -41,6 +42,12 @@ export default function EditTourPage() {
         <div className="rounded-lg border bg-destructive/10 p-6 text-destructive">
           <h3 className="font-bold">Error Loading Tour</h3>
           <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-destructive text-white rounded-md"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
