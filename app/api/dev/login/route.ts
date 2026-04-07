@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 import { signAccessToken, generateRefreshToken, refreshTokenExpiresAt } from "@/lib/auth/jwt";
 import { setAuthCookies } from "@/lib/auth/cookies";
 

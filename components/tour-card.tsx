@@ -22,19 +22,19 @@ export function TourCard({ tour, onEdit }: TourCardProps) {
   return (
     <Card className='overflow-hidden group hover:shadow-lg transition-all duration-300 border-none bg-card/50 backdrop-blur-sm'>
       <div className='relative aspect-[4/3] overflow-hidden'>
-        {/* Placeholder for image - using a colored div if image fails or for now */}
-        <div className='absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground'>
-          {tour.image ? (
-            <Image
-              src={tour.image}
-              alt={tour.title}
-              fill
-              className='object-cover group-hover:scale-105 transition-transform duration-500'
-            />
-          ) : (
+        {/* Display image if available, fallback to placeholder */}
+        {tour.image && tour.image !== "" ? (
+          <Image
+            src={tour.image}
+            alt={tour.title}
+            fill
+            className='object-cover group-hover:scale-105 transition-transform duration-500'
+          />
+        ) : (
+          <div className='absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground'>
             <MapPin className='w-12 h-12 opacity-20' />
-          )}
-        </div>
+          </div>
+        )}
         <div className='absolute top-3 right-3 flex flex-col gap-2'>
           <Badge
             variant='secondary'

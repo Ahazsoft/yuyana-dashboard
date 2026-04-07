@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 import {
   signAccessToken,
   generateRefreshToken,

@@ -18,6 +18,8 @@ import { NavSecondary } from "@/components/nav-secondary";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -33,16 +35,16 @@ const data = {
       url: "/admin",
       icon: IconDashboard,
     },
-    {
-      title: "Leads",
-      url: "/admin/leads",
-      icon: IconSearch,
-    },
-    {
-      title: "Customers",
-      url: "/admin/customers",
-      icon: IconHelp,
-    },
+    // {
+    //   title: "Leads",
+    //   url: "/admin/leads",
+    //   icon: IconSearch,
+    // },
+    // {
+    //   title: "Customers",
+    //   url: "/admin/customers",
+    //   icon: IconHelp,
+    // },
     {
       title: "Tours",
       url: "/admin/tours",
@@ -52,6 +54,21 @@ const data = {
       title: "Bookings",
       url: "/admin/bookings",
       icon: IconCalendarCheck,
+    },
+    {
+      title: "Reviews",
+      url: "/admin/reviews",
+      icon: IconMessageStar,
+    },
+    // {
+    //   title: "Automation",
+    //   url: "/admin/automation",
+    //   icon: IconRoute,
+    // },
+    {
+      title: "Reports",
+      url: "/admin/reports/revenue",
+      icon: IconCreditCard,
     },
   ],
   navSecondary: [
@@ -96,9 +113,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className='mt-auto' />
+        <SidebarGroup>
+          <NavMain items={data.navMain} />
+        </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <NavSecondary items={data.navSecondary} />
+      </SidebarFooter>
     </Sidebar>
   );
 }

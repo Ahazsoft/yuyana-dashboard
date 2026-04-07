@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash as bcryptHash } from "bcryptjs";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 import { hashRefreshToken } from "@/lib/auth/jwt";
 
 const schema = z.object({

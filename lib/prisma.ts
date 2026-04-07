@@ -1,26 +1,42 @@
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
+export const  prisma = new PrismaClient({ adapter });
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-  pool: Pool | undefined;
-};
+// import { Pool } from "pg";
+// import { PrismaPg } from "@prisma/adapter-pg";
+// import { PrismaClient } from "@prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
+// const globalForPrisma = globalThis as unknown as {
+//   prisma: PrismaClient | undefined;
+//   pool: Pool | undefined;
+// };
 
-if (!globalForPrisma.pool) {
-  globalForPrisma.pool = new Pool({ connectionString });
-}
+// const connectionString = process.env.DATABASE_URL;
 
-const adapter = new PrismaPg(globalForPrisma.pool as any);
+// if (!connectionString) {
+//   throw new Error("DATABASE_URL environment variable is required");
+// }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-  } as any);
+// if (!globalForPrisma.pool) {
+//   globalForPrisma.pool = new Pool({ 
+//     connectionString,
+//     ssl: {
+//       rejectUnauthorized: false // Required for Supabase connections
+//     }
+//   });
+// }
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// const adapter = new PrismaPg(globalForPrisma.pool as any);
 
-export default prisma;
+// export const prisma =
+//   globalForPrisma.prisma ??
+//   new PrismaClient({
+//     adapter,
+//   } as any);
+
+// if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// export default prisma;

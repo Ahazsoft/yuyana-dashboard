@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 import { getAuthUser, requireRole } from "@/lib/auth/require-role";
 import { hash as bcryptHash } from "bcryptjs";
 import { z } from "zod";
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       email,
       name,
       password: hashedPassword,
+      //@ts-ignore
       role,
       active: true,
     },

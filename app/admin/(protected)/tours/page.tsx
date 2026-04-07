@@ -4,26 +4,30 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import TourCard from "@/components/tours/TourCard";
 
-interface Tour {
+interface ApiTour {
   id: string;
   tourTitle: string;
   tourDestination: string;
-  imageUrl:string;
-  tourDuration: number;
-  tourPrice: number | string;
-  ratings: number;
+  tourDuration: number | null;
+  tourPrice: any;
+  tourDescription: string | null;
+  imageUrl: string | null;
+  included: string[];
+  excluded: string[];
+  isPublished: boolean;
+  slugUrl: string;
+  _count?: {
+    bookings: number;
+  };
 }
 
 export default function ToursPage() {
   const [search, setSearch] = useState("");
-
-  const [tours, setTours] = useState<Tour[]>([]);
+  const [tours, setTours] = useState<ApiTour[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,9 +35,9 @@ export default function ToursPage() {
     const fetchTours = async () => {
       try {
         const res = await fetch("/api/tours");
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) throw new Error("Failed to fetch tours");
         const data = await res.json();
-        setTours(data);
+        setTours(Array.isArray(data.data) ? data.data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -44,71 +48,107 @@ export default function ToursPage() {
     fetchTours();
   }, []);
 
-  if (loading) return <div>Loading tours...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-6">
+        <div className="px-6 mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Tours Management</h1>
+          <p className="text-muted-foreground mt-1">Manage your travel packages and experiences.</p>
+        </div>
+        <div className="px-6">
+          <div className="text-center py-10">
+            <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            </div>
+            <p className="mt-4 text-lg font-medium">Loading tours...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen pt-6">
+        <div className="px-6 mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Tours Management</h1>
+          <p className="text-muted-foreground mt-1">Manage your travel packages and experiences.</p>
+        </div>
+        <div className="px-6">
+          <div className="rounded-lg border bg-destructive/10 p-6 text-destructive">
+            <h3 className="font-bold">Error Loading Tours</h3>
+            <p>{error}</p>
+            <Button
+              variant="destructive"
+              className="mt-4"
+              onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filtered = tours.filter(
     (t) =>
       t.tourTitle.toLowerCase().includes(search.toLowerCase()) ||
-      t.tourDestination.toLowerCase().includes(search.toLowerCase()),
+      t.tourDestination.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <div className="p-4 md:p-6 lg:p-8 space-y-6">
-          {/* Header with title and add button */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Tour Packages
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {tours.length} tours available
-              </p>
+    <div className="min-h-screen pt-6">
+      <div className="px-6 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Tours Management</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your travel packages and experiences.
+            </p>
+          </div>
+          <Link href="/admin/tours/add">
+            <Button className="rounded-xl px-6 h-12 font-semibold shadow-lg shadow-primary/20 gap-2">
+              <Plus className="w-5 h-5" />
+              Add New Tour
+            </Button>
+          </Link>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tours by title or destination..."
+            className="pl-10 h-12 bg-white/80 backdrop-blur-sm border border-slate-200/80"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="px-6 pb-10">
+        {filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <Search className="h-8 w-8 text-muted-foreground" />
             </div>
-            <Button asChild>
-              <Link href="/admin/tours/add">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Tour
-              </Link>
+            <h3 className="mt-4 font-semibold text-lg">No tours found</h3>
+            <p className="text-muted-foreground mt-1">
+              {tours.length === 0
+                ? "No tours in the database yet. Import tours from Yuyana Travel to get started."
+                : "Try adjusting your search to find what you're looking for."}
+            </p>
+            <Button variant="outline" className="mt-4" onClick={() => setSearch("")}>
+              Reset Search
             </Button>
           </div>
-
-          {/* Search input */}
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search tours..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Tour cards grid */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((tour) => (
               <TourCard key={tour.id} tour={tour} />
             ))}
           </div>
-
-          {/* Empty state */}
-          {filtered.length === 0 && (
-            <p className="text-center text-muted-foreground py-12">
-              No tours found.
-            </p>
-          )}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        )}
+      </div>
+    </div>
   );
 }

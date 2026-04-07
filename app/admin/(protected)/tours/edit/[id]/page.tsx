@@ -1,10 +1,9 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useParams } from "next/navigation";
 import EditTourForm from "@/components/tours/EditTourForm";
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function EditTourPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,55 +13,46 @@ export default function EditTourPage() {
 
   useEffect(() => {
     fetch(`/api/tours/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
+      .then((res) => {
+        if (!res.ok) throw new Error("Tour not found");
+        return res.json();
+      })
+      .then((data) => {
         setTour(data);
       })
-      .catch(err => setError(err.message))
+      .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!tour) return <div>Tour not found</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading tour data...</p>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <SidebarProvider
-      style={{ "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)" } as React.CSSProperties}
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <EditTourForm initialData={tour} />
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border bg-destructive/10 p-6 text-destructive">
+          <h3 className="font-bold">Error Loading Tour</h3>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tour) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Tour not found.</p>
+      </div>
+    );
+  }
+
+  return <EditTourForm initialData={tour} />;
 }
-
-// "use client";
-
-// import { AppSidebar } from "@/components/app-sidebar";
-// import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-// import { mockTours } from "@/app/data/mockTours";
-// import { useParams } from "next/navigation";
-// import EditTourForm from "@/components/tours/EditTourForm";
-
-// export default function EditTourPage() {
-//   const { id } = useParams<{ id: string }>();
-//   const tour = mockTours.find((t) => t.id === id);
-//   return (
-//     <SidebarProvider
-//       style={
-//         {
-//           "--sidebar-width": "calc(var(--spacing) * 72)",
-//           "--header-height": "calc(var(--spacing) * 12)",
-//         } as React.CSSProperties
-//       }
-//     >
-//       <AppSidebar variant="inset" />
-//       <SidebarInset>
-//         <EditTourForm initialData={tour!} />
-//       </SidebarInset>
-//     </SidebarProvider>
-//   );
-// }
