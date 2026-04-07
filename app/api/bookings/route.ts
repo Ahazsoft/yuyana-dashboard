@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {prisma} from "@/lib/prisma";
-// import { getAuthUser } from "@/lib/auth/require-role";  // Temporarily disabled
+import { getAuthUser } from "@/lib/auth/require-role";
 import { z } from "zod";
-// import { logAudit, getIp } from "@/lib/audit";  // Temporarily disabled
-// import { rateLimit } from "@/lib/rate-limit";  // Temporarily disabled
-
-// Temporary auth bypass function
-function getTempAuth() {
-  return { userId: "temp_user", role: "ADMIN", email: "temp@example.com" };
-}
+import { logAudit, getIp } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const bookingSchema = z.object({
   customerId: z.string(),
@@ -19,10 +14,8 @@ const bookingSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  // Temporarily bypassing authentication
-  const auth = getTempAuth(); // Simulate authenticated user
-  // const auth = getAuthUser(req);
-  // if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = getAuthUser(req);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
   const skip = parseInt(url.searchParams.get("skip") || "0");
@@ -33,9 +26,6 @@ export async function GET(req: NextRequest) {
   const where: any = {};
   if (status) where.status = status;
   if (customerId) where.customerId = customerId;
-
-  // Sales/Marketing roles can see all bookings but perhaps later restrict
-  // For now, only VIEWER cannot see sensitive parts (handled in UI)
 
   const [bookings, total] = await Promise.all([
     prisma.booking.findMany({
@@ -56,14 +46,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Temporarily bypassing rate limiting and authentication
-  // const ip = getIp(req) ?? "unknown";
-  // const rl = rateLimit(`bookings-public:${ip}`, 5, 10 * 60 * 1000); // 5 per 10 mins
-  // if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-
-  const auth = getTempAuth(); // Simulate authenticated user
-  // const auth = getAuthUser(req);
-  // if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = getAuthUser(req);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
   const parsed = bookingSchema.safeParse(body);
@@ -103,20 +87,20 @@ export async function POST(req: NextRequest) {
       //@ts-ignore
       agreedPrice,
       totalPrice,
-      currency: "USD", // Defaulting from base or configure via HLD
+      currency: "USD",
       notes,
       travelDate: travelDate ? new Date(travelDate) : null,
     },
   });
 
-  // Temporarily disabling audit logging since auth is disabled
-  // await logAudit({
-  //   actorId: auth.userId,
-  //   action: "booking.created",
-  //   entityType: "Booking",
-  //   entityId: booking.id,
-  //   meta: { tourId: tourPackageId, customerId },
-  // });
+  await logAudit({
+    actorId: auth.userId,
+    action: "booking.created",
+    entityType: "Booking",
+    entityId: booking.id,
+    ipAddress: getIp(req),
+    meta: { tourId: tourPackageId, customerId },
+  });
 
   return NextResponse.json(booking, { status: 201 });
 }
