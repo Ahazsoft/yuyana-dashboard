@@ -1,5 +1,5 @@
 // @ts-nocheck
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 
 export async function convertLeadToBooking(leadId: string, userId: string) {
   return await prisma.$transaction(async (tx) => {

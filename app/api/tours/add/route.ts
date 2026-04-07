@@ -112,8 +112,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 // import fs from 'fs/promises';
 import path from 'path';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import {prisma} from '@/lib/prisma';
 
 // Helper to ensure directory exists
 // async function ensureDir(dir: string) {

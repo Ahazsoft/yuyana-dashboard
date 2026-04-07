@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-// import { uuid } from "uuidv4";
+import { uuid } from "uuidv4";
 
 const DATA_PATH = path.join(process.cwd(), "data/tours.json");
 
@@ -61,7 +61,7 @@ export class TourJSONRepository {
   static create(data: Partial<TourPackage>): TourPackage {
     const tours = this.readData();
     const newTour: TourPackage = {
-      id: uuidv4(),
+      id: uuid(),
       slugUrl: data.slugUrl || "",
       tourTitle: data.tourTitle || "New Tour",
       tourDescription: data.tourDescription || null,

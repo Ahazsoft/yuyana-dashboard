@@ -93,7 +93,7 @@ import { NextRequest, NextResponse } from "next/server";
 // };
 
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   // Authentication temporarily disabled - allow all requests to pass through
   return NextResponse.next();
 }

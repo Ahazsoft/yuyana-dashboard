@@ -35,16 +35,16 @@ const data = {
       url: "/admin",
       icon: IconDashboard,
     },
-    {
-      title: "Leads",
-      url: "/admin/leads",
-      icon: IconSearch,
-    },
-    {
-      title: "Customers",
-      url: "/admin/customers",
-      icon: IconHelp,
-    },
+    // {
+    //   title: "Leads",
+    //   url: "/admin/leads",
+    //   icon: IconSearch,
+    // },
+    // {
+    //   title: "Customers",
+    //   url: "/admin/customers",
+    //   icon: IconHelp,
+    // },
     {
       title: "Tours",
       url: "/admin/tours",
@@ -56,15 +56,15 @@ const data = {
       icon: IconCalendarCheck,
     },
     {
-      title: "Campaigns",
-      url: "/admin/campaigns",
+      title: "Reviews",
+      url: "/admin/reviews",
       icon: IconMessageStar,
     },
-    {
-      title: "Automation",
-      url: "/admin/automation",
-      icon: IconRoute,
-    },
+    // {
+    //   title: "Automation",
+    //   url: "/admin/automation",
+    //   icon: IconRoute,
+    // },
     {
       title: "Reports",
       url: "/admin/reports/revenue",
