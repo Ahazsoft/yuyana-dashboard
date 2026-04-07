@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trash2, Plus, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface DayForm {
   dayNumber: number;
@@ -20,34 +21,89 @@ interface DayForm {
 
 const AddTourForm = () => {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Basic fields
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [destination, setDestination] = useState("");
   const [duration, setDuration] = useState("");
 
+  // File states
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [documentPreviewName, setDocumentPreviewName] = useState<string | null>(null);
 
+  // Included / excluded
   const [included, setIncluded] = useState<string[]>([""]);
   const [excluded, setExcluded] = useState<string[]>([""]);
 
+  // Pricing
   const [advancedPricing, setAdvancedPricing] = useState(false);
-  const [standardPrice, setStandardPrice] = useState("");
-  const [adultPrice, setAdultPrice] = useState("");
-  const [kidsPrice, setKidsPrice] = useState("");
-  const [priceTag, setPriceTag] = useState("");
+  const [simplePrice, setSimplePrice] = useState<number | null>(null);
+  const [pricing, setPricing] = useState({
+    adult: 0,
+    kid: 0,
+    tag: 0,
+  });
 
-  const [days, setDays] = useState<DayForm[]>([]);
+  // Itinerary
+  const [days, setDays] = useState<DayForm[]>([
+    { dayNumber: 1, title: "", description: "", items: [""], boldtext: "" },
+  ]);
 
+  // File handlers
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setDocumentFile(file);
+      setDocumentPreviewName(file.name);
+    }
+  };
+
+  // List helpers
+  const addListItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter((prev) => [...prev, ""]);
+  };
+
+  const updateListItem = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    idx: number,
+    value: string
+  ) => {
+    setter((prev) => {
+      const updated = [...prev];
+      updated[idx] = value;
+      return updated;
+    });
+  };
+
+  const removeListItem = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    idx: number
+  ) => {
+    setter((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Itinerary helpers
   const addDay = () => {
+    const maxDayNum = days.length > 0 ? Math.max(...days.map((d) => d.dayNumber)) : 0;
     setDays((prev) => [
       ...prev,
       {
-        dayNumber: prev.length + 1,
+        dayNumber: maxDayNum + 1,
         title: "",
         description: "",
         items: [""],
@@ -56,198 +112,91 @@ const AddTourForm = () => {
     ]);
   };
 
+  const updateDay = (idx: number, field: keyof DayForm, value: any) => {
+    setDays((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  };
+
   const removeDay = (idx: number) => {
-    setDays((prev) =>
-      prev
-        .filter((_, i) => i !== idx)
-        .map((d, i) => ({ ...d, dayNumber: i + 1 })),
-    );
+    setDays((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const updateDay = (
-    idx: number,
-    field: keyof DayForm,
-    value: string | string[],
-  ) => {
-    setDays((prev) =>
-      prev.map((d, i) => (i === idx ? { ...d, [field]: value } : d)),
-    );
+  const addDayItem = (dayIdx: number) => {
+    setDays((prev) => {
+      const updated = [...prev];
+      updated[dayIdx] = {
+        ...updated[dayIdx],
+        items: [...updated[dayIdx].items, ""],
+      };
+      return updated;
+    });
   };
 
-  const addListItem = (
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-  ) => {
-    setter((prev) => [...prev, ""]);
+  const updateDayItem = (dayIdx: number, itemIdx: number, value: string) => {
+    setDays((prev) => {
+      const updated = [...prev];
+      const newItems = [...updated[dayIdx].items];
+      newItems[itemIdx] = value;
+      updated[dayIdx] = { ...updated[dayIdx], items: newItems };
+      return updated;
+    });
   };
 
-  const removeListItem = (
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    idx: number,
-  ) => {
-    setter((prev) => prev.filter((_, i) => i !== idx));
+  const removeDayItem = (dayIdx: number, itemIdx: number) => {
+    setDays((prev) => {
+      const updated = [...prev];
+      const newItems = updated[dayIdx].items.filter((_, i) => i !== itemIdx);
+      updated[dayIdx] = { ...updated[dayIdx], items: newItems };
+      return updated;
+    });
   };
 
-  const updateListItem = (
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    idx: number,
-    val: string,
-  ) => {
-    setter((prev) => prev.map((v, i) => (i === idx ? val : v)));
-  };
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "image" | "document",
-  ) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-
-    if (type === "image") {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = () => setImageUrl(reader.result as string); // required preview
-      reader.readAsDataURL(file);
-    } else if (type === "document") {
-      setDocumentFile(file);
-
-      // Just display the filename as a placeholder
-      setDocumentUrl(file.name);
-    }
-    // For document, you can allow null
-  };
-
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-
-  //   let tourPrice: Record<string, unknown> = {};
-
-  //   if (!advancedPricing) {
-  //     tourPrice = {
-  //       price: parseFloat(standardPrice) || 0,
-  //       adultprice: 0,
-  //       kidprice: 0,
-  //       pricetag: 0,
-  //     };
-  //   } else {
-  //     tourPrice = {
-  //       price: 0,
-  //       adultprice: adultPrice ? parseFloat(adultPrice) : 0,
-  //       kidprice: kidsPrice ? parseFloat(kidsPrice) : 0,
-  //       pricetag: priceTag ? parseFloat(priceTag) : 0,
-  //     };
-
-  //     const hasAdultKids =
-  //       (tourPrice.adultprice as number) > 0 ||
-  //       (tourPrice.kidprice as number) > 0;
-  //     const hasPriceTag = (tourPrice.pricetag as number) > 0;
-
-  //     if (!hasAdultKids && !hasPriceTag) {
-  //       alert("Please fill either Adult/Kids prices or the Price Tag.");
-  //       return;
-  //     }
-  //   }
-  //   function generateSlug(text: string) {
-  //     return text
-  //       .toLowerCase() // normalize to lowercase
-  //       .trim() // remove leading/trailing spaces
-  //       .replace(/[^a-z0-9\s-]/g, "") // remove anything that's not a-z, 0-9, space or dash
-  //       .replace(/\s+/g, "-") // replace spaces with dash
-  //       .replace(/-+/g, "-"); // collapse multiple dashes
-  //   }
-
-  //   const formData = {
-  //     tourTitle: title,
-  //     slugUrl: slug,
-  //     tourDescription: description || null,
-  //     tourDestination: destination,
-  //     tourDuration: duration ? parseInt(duration) : 1,
-  //     imageUrl: imageUrl,
-  //     tourDocumentUrl: documentUrl || null,
-  //     tourPrice,
-  //     included: included.filter(Boolean),
-  //     excluded: excluded.filter(Boolean),
-  //     tourPlanDays: days.map((d) => ({
-  //       dayNumber: d.dayNumber,
-  //       title: d.title || null,
-  //       description: d.description || null,
-  //       items: d.items.filter(Boolean),
-  //       boldtext: d.boldtext || null,
-  //     })),
-  //   };
-
-  //   try {
-  //     const response = await fetch("/api/tours/add", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(formData),
-  //     });
-
-  //     const result = await response.json();
-
-  //     if (!response.ok) {
-  //       alert(result.message || "Failed to create tour");
-  //       return;
-  //     }
-
-  //     alert("Tour created successfully!");
-  //     router.push("/admin/tours");
-  //   } catch (error) {
-  //     console.error("Error creating tour:", error);
-  //     alert("Something went wrong while creating the tour.");
-  //   }
-  //   router.push("/admin/tours");
-  // };
-
+  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Build the JSON parts as strings
-    const tourPriceObj = advancedPricing
-      ? {
-          price: 0,
-          adultprice: adultPrice ? parseFloat(adultPrice) : 0,
-          kidprice: kidsPrice ? parseFloat(kidsPrice) : 0,
-          pricetag: priceTag ? parseFloat(priceTag) : 0,
-        }
-      : {
-          price: parseFloat(standardPrice) || 0,
-          adultprice: 0,
-          kidprice: 0,
-          pricetag: 0,
-        };
-
-    const includedFiltered = included.filter(Boolean);
-    const excludedFiltered = excluded.filter(Boolean);
-    const tourPlanDaysFiltered = days.map((d) => ({
-      dayNumber: d.dayNumber,
-      title: d.title || null,
-      description: d.description || null,
-      items: d.items.filter(Boolean),
-      boldtext: d.boldtext || null,
-    }));
-
-    // Create FormData and append fields
     const formData = new FormData();
+
+    // Basic info
     formData.append("slugUrl", slug);
     formData.append("tourTitle", title);
     formData.append("tourDestination", destination);
     if (description) formData.append("tourDescription", description);
     if (duration) formData.append("tourDuration", duration);
-    formData.append("included", JSON.stringify(includedFiltered));
-    formData.append("excluded", JSON.stringify(excludedFiltered));
-    formData.append("tourPrice", JSON.stringify(tourPriceObj));
-    formData.append("tourPlanDays", JSON.stringify(tourPlanDaysFiltered));
 
-    // Append files if selected
+    // Pricing
+    if (advancedPricing) {
+      formData.append(
+        "tourPrice",
+        JSON.stringify({
+          adultprice: pricing.adult,
+          kidprice: pricing.kid,
+          pricetag: pricing.tag,
+        })
+      );
+    } else {
+      formData.append("tourPrice", JSON.stringify(simplePrice ?? 0));
+    }
+
+    // Included/Excluded
+    formData.append("included", JSON.stringify(included.filter(Boolean)));
+    formData.append("excluded", JSON.stringify(excluded.filter(Boolean)));
+
+    // Itinerary
+    formData.append("tourPlanDays", JSON.stringify(days));
+
+    // Files
     if (imageFile) formData.append("image", imageFile);
     if (documentFile) formData.append("document", documentFile);
 
     try {
       const response = await fetch("/api/tours/add", {
         method: "POST",
-        body: formData, // no Content-Type header – browser sets it with boundary
+        body: formData,
       });
 
       const result = await response.json();
@@ -258,16 +207,19 @@ const AddTourForm = () => {
       }
 
       alert("Tour created successfully!");
-      // router.push("/admin/tours");
+      router.push("/admin/tours");
     } catch (error) {
       console.error("Error creating tour:", error);
       alert("Something went wrong while creating the tour.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-4xl">
+        {/* Back + Title */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -282,10 +234,9 @@ const AddTourForm = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* General Information */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">
-              General Information
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">General Information</h2>
             <Separator />
 
             <div className="space-y-2">
@@ -295,6 +246,7 @@ const AddTourForm = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                placeholder="e.g. Historical Tour of Ethiopia"
               />
             </div>
 
@@ -305,16 +257,7 @@ const AddTourForm = () => {
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                placeholder="e.g. historical-tour-ethiopia"
               />
             </div>
 
@@ -326,127 +269,142 @@ const AddTourForm = () => {
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   required
+                  placeholder="e.g. Addis Ababa, Ethiopia"
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="duration">Duration in days</Label>
+                <Label htmlFor="duration">Duration (days) *</Label>
                 <Input
                   id="duration"
                   type="number"
-                  min={1}
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
+                  required
+                  min="1"
+                  placeholder="e.g. 7"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2 ">
-                <Label>Tour Image</Label>
-                <input
-                  className="border border-black px-3 py-1 rounded"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, "image")}
-                />
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Preview"
-                    className="mt-2 max-h-40 rounded-md"
-                  />
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Describe the tour..."
+              />
+            </div>
+          </section>
+
+          {/* Media */}
+          <section className="space-y-4 rounded-lg border border-black bg-card p-5">
+            <h2 className="text-lg font-semibold text-foreground">Media</h2>
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="image">Tour Image</Label>
+                <Input id="image" type="file" accept="image/*" onChange={handleImageChange} />
+                {imagePreview && (
+                  <div className="mt-2">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview"
+                      width={300}
+                      height={200}
+                      className="rounded object-cover"
+                    />
+                  </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label>Tour Document</Label>
-                <input
-                  className="border border-black px-3 py-1 rounded"
+                <Label htmlFor="document">Tour Document (PDF, DOCX, etc.)</Label>
+                <Input
+                  id="document"
                   type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileChange(e, "document")}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleDocumentChange}
                 />
-                {documentUrl && <p className="mt-1 text-sm">{documentUrl}</p>}
+                {documentPreviewName && (
+                  <p className="text-sm text-muted-foreground">Selected: {documentPreviewName}</p>
+                )}
               </div>
             </div>
           </section>
 
+          {/* Pricing */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Pricing</h2>
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="advancedPricing"
-                  className="text-sm text-muted-foreground"
-                >
-                  Advanced
-                </Label>
-                <Switch
-                  id="advancedPricing"
-                  checked={advancedPricing}
-                  onCheckedChange={setAdvancedPricing}
-                />
-              </div>
-            </div>
+            <h2 className="text-lg font-semibold text-foreground">Pricing</h2>
             <Separator />
 
-            {!advancedPricing ? (
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (USD)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={standardPrice}
-                  onChange={(e) => setStandardPrice(e.target.value)}
-                />
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="advanced-pricing"
+                checked={advancedPricing}
+                onCheckedChange={setAdvancedPricing}
+              />
+              <Label htmlFor="advanced-pricing">Use Advanced Pricing</Label>
+            </div>
+
+            {advancedPricing ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="adult-price">Adult Price ($)</Label>
+                  <Input
+                    id="adult-price"
+                    type="number"
+                    value={pricing.adult}
+                    onChange={(e) => setPricing({ ...pricing, adult: Number(e.target.value) })}
+                    min="0"
+                    step="10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kid-price">Kid Price ($)</Label>
+                  <Input
+                    id="kid-price"
+                    type="number"
+                    value={pricing.kid}
+                    onChange={(e) => setPricing({ ...pricing, kid: Number(e.target.value) })}
+                    min="0"
+                    step="10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tag-price">Price Tag ($)</Label>
+                  <Input
+                    id="tag-price"
+                    type="number"
+                    value={pricing.tag}
+                    onChange={(e) => setPricing({ ...pricing, tag: Number(e.target.value) })}
+                    min="0"
+                    step="10"
+                  />
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="adultPrice">Adult Price ($)</Label>
-                    <Input
-                      id="adultPrice"
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={adultPrice}
-                      onChange={(e) => setAdultPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kidsPrice">Kids Price ($)</Label>
-                    <Input
-                      id="kidsPrice"
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={kidsPrice}
-                      onChange={(e) => setKidsPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="priceTag">Price Tag ($)</Label>
-                    <Input
-                      id="priceTag"
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={priceTag}
-                      onChange={(e) => setPriceTag(e.target.value)}
-                    />
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="simple-price">Price ($)</Label>
+                <Input
+                  id="simple-price"
+                  type="number"
+                  value={simplePrice ?? ""}
+                  onChange={(e) => setSimplePrice(Number(e.target.value))}
+                  min="0"
+                  step="10"
+                  placeholder="0"
+                />
               </div>
             )}
           </section>
 
+          {/* Inclusions */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">
-              Included & Excluded
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">Inclusions</h2>
             <Separator />
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -456,9 +414,8 @@ const AddTourForm = () => {
                   <div key={idx} className="flex gap-2">
                     <Input
                       value={item}
-                      onChange={(e) =>
-                        updateListItem(setIncluded, idx, e.target.value)
-                      }
+                      onChange={(e) => updateListItem(setIncluded, idx, e.target.value)}
+                      placeholder="e.g. Hotel"
                     />
                     {included.length > 1 && (
                       <Button
@@ -488,9 +445,8 @@ const AddTourForm = () => {
                   <div key={idx} className="flex gap-2">
                     <Input
                       value={item}
-                      onChange={(e) =>
-                        updateListItem(setExcluded, idx, e.target.value)
-                      }
+                      onChange={(e) => updateListItem(setExcluded, idx, e.target.value)}
+                      placeholder="e.g. Flights"
                     />
                     {excluded.length > 1 && (
                       <Button
@@ -516,17 +472,11 @@ const AddTourForm = () => {
             </div>
           </section>
 
+          {/* Itinerary */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                Itinerary
-              </h2>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addDay}
-              >
+              <h2 className="text-lg font-semibold text-foreground">Itinerary</h2>
+              <Button type="button" variant="outline" size="sm" onClick={addDay}>
                 <Plus className="mr-1 h-3 w-3" /> Add Day
               </Button>
             </div>
@@ -534,86 +484,72 @@ const AddTourForm = () => {
 
             {days.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                No days added yet. Click "Add Day" to start building the
-                itinerary.
+                No days added yet. Click "Add Day" to start building the itinerary.
               </p>
             )}
 
             <div className="space-y-4">
               {days.map((day, idx) => (
-                <div
-                  key={idx}
-                  className="space-y-3 rounded-md border border-black bg-background p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-primary">
-                      Day {day.dayNumber}
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDay(idx)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                <div key={idx} className="rounded-lg border p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="font-medium">Day {day.dayNumber}</h3>
+                    {days.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeDay(idx)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-1 h-3 w-3" /> Remove
+                      </Button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Title</Label>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Title (optional)</Label>
                       <Input
                         value={day.title}
-                        onChange={(e) =>
-                          updateDay(idx, "title", e.target.value)
-                        }
+                        onChange={(e) => updateDay(idx, "title", e.target.value)}
+                        placeholder="e.g. Arrival in Addis Ababa"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Important Note</Label>
+
+                    <div className="space-y-2">
+                      <Label>Bold Text (optional)</Label>
                       <Input
                         value={day.boldtext}
-                        onChange={(e) =>
-                          updateDay(idx, "boldtext", e.target.value)
-                        }
+                        onChange={(e) => updateDay(idx, "boldtext", e.target.value)}
+                        placeholder="e.g. Free time"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs">Description</Label>
+                  <div className="mt-3 space-y-2">
+                    <Label>Description (optional)</Label>
                     <Textarea
                       value={day.description}
-                      onChange={(e) =>
-                        updateDay(idx, "description", e.target.value)
-                      }
+                      onChange={(e) => updateDay(idx, "description", e.target.value)}
                       rows={2}
+                      placeholder="What will happen during this day?"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs">Items</Label>
+                  <div className="mt-3 space-y-2">
+                    <Label>Itinerary Items (optional)</Label>
                     {day.items.map((item, iIdx) => (
                       <div key={iIdx} className="flex gap-2">
                         <Input
                           value={item}
-                          onChange={(e) => {
-                            const newItems = [...day.items];
-                            newItems[iIdx] = e.target.value;
-                            updateDay(idx, "items", newItems);
-                          }}
+                          onChange={(e) => updateDayItem(idx, iIdx, e.target.value)}
                         />
                         {day.items.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              const newItems = day.items.filter(
-                                (_, i) => i !== iIdx,
-                              );
-                              updateDay(idx, "items", newItems);
-                            }}
+                            onClick={() => removeDayItem(idx, iIdx)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -624,9 +560,7 @@ const AddTourForm = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        updateDay(idx, "items", [...day.items, ""])
-                      }
+                      onClick={() => addDayItem(idx)}
                     >
                       <Plus className="mr-1 h-3 w-3" /> Add Item
                     </Button>
@@ -636,15 +570,26 @@ const AddTourForm = () => {
             </div>
           </section>
 
+          {/* Actions */}
           <div className="flex justify-end gap-3 pb-8">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push("/admin/tours")}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit">Create Tour</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Tour"
+              )}
+            </Button>
           </div>
         </form>
       </div>
