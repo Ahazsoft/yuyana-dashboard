@@ -9,8 +9,17 @@ const globalForPrisma = globalThis as unknown as {
 
 const connectionString = process.env.DATABASE_URL;
 
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 if (!globalForPrisma.pool) {
-  globalForPrisma.pool = new Pool({ connectionString });
+  globalForPrisma.pool = new Pool({ 
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false // Required for Supabase connections
+    }
+  });
 }
 
 const adapter = new PrismaPg(globalForPrisma.pool as any);

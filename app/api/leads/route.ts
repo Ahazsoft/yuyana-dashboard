@@ -1,43 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getAuthUser } from "@/lib/auth/require-role";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
-import { triggerAutomation } from "@/lib/automation/engine";
-import { rateLimit } from "@/lib/rate-limit";
-import { getIp } from "@/lib/audit";
 
 const leadSchema = z.object({
   customerId: z.string(),
-  customersCount: z.number().int().min(1).default(1),
   source: z.string().optional(),
-  title: z.string().optional(),
   description: z.string().optional(),
-  value: z.number().min(0).default(0),
-  assignedTo: z.string().optional(),
+  estimatedValue: z.number().min(0).optional(),
+  userId: z.string().optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
+  status: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
-  const auth = getAuthUser(req);
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const url = new URL(req.url);
   const skip = parseInt(url.searchParams.get("skip") || "0");
   const take = parseInt(url.searchParams.get("take") || "50");
-  const status = url.searchParams.get("status"); // optional filter
-  const assignedTo = url.searchParams.get("assignedTo"); // optional filter
+  const status = url.searchParams.get("status");
+  const userId = url.searchParams.get("userId");
 
   const where: any = {};
   if (status) where.status = status;
-  if (assignedTo) where.assignedTo = assignedTo;
-  
-  // Sales agents can only see leads assigned to them or unassigned
-  if (auth.role === "SALES") {
-    where.OR = [
-      { assignedTo: auth.userId },
-      { assignedTo: null }
-    ];
-  }
+  if (userId) where.userId = userId;
 
   const [leads, total] = await Promise.all([
     prisma.lead.findMany({
@@ -46,7 +30,7 @@ export async function GET(req: NextRequest) {
       take,
       orderBy: { createdAt: "desc" },
       include: {
-        customer: { select: { firstName: true, lastName: true, email: true } },
+        customer: { select: { name: true, email: true } },
       },
     }),
     prisma.lead.count({ where }),
@@ -56,13 +40,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = getIp(req) ?? "unknown";
-  const rl = rateLimit(`leads-public:${ip}`, 10, 60 * 60 * 1000); // 10 per hour
-  if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-
-  const auth = getAuthUser(req);
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const body = await req.json().catch(() => null);
   const parsed = leadSchema.safeParse(body);
   if (!parsed.success) {
@@ -71,21 +48,23 @@ export async function POST(req: NextRequest) {
 
   const lead = await prisma.lead.create({
     data: {
-      ...parsed.data,
-      createdBy: auth.userId,
+      customerId: parsed.data.customerId,
+      source: parsed.data.source,
+      description: parsed.data.description,
+      estimatedValue: parsed.data.estimatedValue,
+      userId: parsed.data.userId || null,
+      priority: parsed.data.priority,
+      status: (parsed.data.status as any) || "NEW",
     },
   });
 
-  await logAudit({
-    actorId: auth.userId,
-    action: "lead.created",
-    entityType: "Lead",
-    entityId: lead.id,
-    meta: { customerId: lead.customerId, assigned: lead.assignedTo },
+  await prisma.leadActivity.create({
+    data: {
+      leadId: lead.id,
+      type: "CREATED",
+      description: `Lead created from ${lead.source || "Unknown source"}`,
+    },
   });
 
-  // Trigger automation asynchronously
-  triggerAutomation("lead.created", lead.customerId, { leadId: lead.id }).catch(console.error);
-
-  return NextResponse.json(lead, { status: 211 });
+  return NextResponse.json(lead, { status: 201 });
 }

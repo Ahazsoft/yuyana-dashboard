@@ -1,17 +1,13 @@
 "use client";
 
 import Link from "next/link";
-
-import * as React from "react";
-import { type Icon, IconLogout } from "@tabler/icons-react";
-import { useRouter } from "next/navigation";
+import { type Icon } from "@tabler/icons-react";
 
 import {
   SidebarGroup,
-  SidebarGroupContent,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 
 export function NavSecondary({
@@ -23,37 +19,21 @@ export function NavSecondary({
     url: string;
     icon: Icon;
   }[];
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/admin/login");
-    router.refresh();
-  };
-
+}) {
   return (
-    <SidebarGroup {...props}>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <Link href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
-              <IconLogout />
-              <span>Logout</span>
+    <SidebarGroup className="mt-auto">
+      <SidebarMenu {...props}>
+        {items.map((item) => (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild size="sm">
+              <Link href={item.url}>
+                <item.icon />
+                <span>{item.title}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
+        ))}
+      </SidebarMenu>
     </SidebarGroup>
   );
 }

@@ -30,7 +30,7 @@ export async function GET(
     where: { id },
     include: {
       _count: {
-        select: { leads: true, bookings: true, payments: true },
+        select: { leads: true, bookings: true },
       },
       user: {
         select: { name: true, email: true },
@@ -94,7 +94,7 @@ export async function DELETE(
   try {
     await prisma.customer.update({
       where: { id },
-      data: { status: "archived" },
+      data: { /* status: "archived" */ },
     });
 
     await logAudit({

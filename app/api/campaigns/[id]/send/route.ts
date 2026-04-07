@@ -27,7 +27,7 @@ export async function POST(
     return NextResponse.json({ error: "Campaign already executed" }, { status: 400 });
   }
 
-  const criteria = campaign.segment?.criteria || campaign.targetSegment;
+  const criteria = campaign.segment?.description || campaign.targetSegment;
   if (!criteria) {
     return NextResponse.json({ error: "No segment or criteria defined" }, { status: 400 });
   }
