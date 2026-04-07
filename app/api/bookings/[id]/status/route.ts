@@ -3,7 +3,7 @@ import {prisma} from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth/require-role";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { triggerAutomation } from "@/lib/automation/engine";
+// import { triggerAutomation } from "@/lib/automation/engine";
 
 const statusSchema = z.object({
   status: z.enum([
@@ -67,9 +67,9 @@ export async function POST(
   });
 
   // Trigger automation for confirmation
-  if (status === "CONFIRMED") {
-    triggerAutomation("booking.confirmed", updated.customerId, { bookingId: id }).catch(console.error);
-  }
+  // if (status === "CONFIRMED") {
+  //   triggerAutomation("booking.confirmed", updated.customerId, { bookingId: id }).catch(console.error);
+  // }
 
   return NextResponse.json(updated);
 }

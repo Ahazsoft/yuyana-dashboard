@@ -1,7 +1,46 @@
-import { MapPin, Clock, Star } from "lucide-react";
-import Link from "next/link";
+import { MapPin, Clock, Star, MoreVertical, Edit, Trash2, ImageIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const TourCard = ({ tour }: { tour: any }) => {
+interface TourCardProps {
+  tour: {
+    id: string;
+    imageUrl: string | null;
+    tourTitle: string;
+    tourDestination: string;
+    tourDuration: number | null;
+    tourDescription: string | null;
+    isPublished: boolean;
+    tourPrice: any;
+    _count?: {
+      bookings: number;
+    };
+    included?: string[];
+  };
+}
+
+const TourCard = ({ tour }: TourCardProps) => {
+  const router = useRouter();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const price = tour.tourPrice as Record<string, number> | null;
 
   const displayPrice = () => {
@@ -24,75 +63,178 @@ const TourCard = ({ tour }: { tour: any }) => {
     return parts.join(" | ") || null;
   };
 
+  const handleEdit = () => {
+    router.push(`/admin/tours/edit/${tour.id}`);
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/tours/edit/${tour.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      window.location.reload();
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Failed to delete tour");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const rating = tour._count?.bookings ? 4.5 : 0;
+
   return (
-    <Link
-      href={`/admin/tours/edit/${tour.id}`}
-      className="group block rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-    >
-      <div className="aspect-video relative overflow-hidden bg-muted">
-        {tour.imageUrl ? (
-          <img
-            src={tour.imageUrl}
-            alt={tour.tourTitle}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <MapPin className="h-8 w-8 opacity-30" />
+    <>
+      <div className="group rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+        {/* Row 1: Image */}
+        <div className="relative aspect-video bg-muted">
+          {tour.imageUrl ? (
+            <img
+              src={tour.imageUrl}
+              alt={tour.tourTitle}
+              className="h-full w-full object-cover cursor-pointer transition-transform group-hover:scale-105"
+              onClick={handleEdit}
+              loading="lazy"
+            />
+          ) : (
+            <div
+              className="flex h-full w-full items-center justify-center text-muted-foreground cursor-pointer"
+              onClick={handleEdit}
+            >
+              <ImageIcon className="h-10 w-10 opacity-30" />
+            </div>
+          )}
+
+          {/* Diagonal Badge - Top Left */}
+          <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden pointer-events-none">
+            <div
+              className={`absolute -top-0 -left-0 w-20 h-8 rotate-[-45deg] translate-y-[14px] -translate-x-[18px] flex items-center justify-center text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${
+                tour.isPublished ? "bg-emerald-500" : "bg-red-500"
+              }`}
+            >
+              {tour.isPublished ? "Published" : "Draft"}
+            </div>
           </div>
-        )}
-        {/* Published badge */}
-        <div className="absolute top-2 left-2">
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              tour.isPublished
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-            }`}
+
+          {/* More Options Menu - Top Right */}
+          <div className="absolute top-2 right-2 z-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Booking Count Badge */}
+          {tour._count?.bookings ? (
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {tour._count.bookings} booking{tour._count.bookings !== 1 ? "s" : ""}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Card Content */}
+        <div className="p-5 space-y-3">
+          {/* Row 2: Location & Days */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{tour.tourDestination}</span>
+            </div>
+            {tour.tourDuration && (
+              <div className="flex items-center gap-1 shrink-0">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{tour.tourDuration} days</span>
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Title */}
+          <h3
+            className="font-semibold text-lg leading-tight line-clamp-1 cursor-pointer hover:text-primary transition-colors"
+            onClick={handleEdit}
           >
-            {tour.isPublished ? "Published" : "Draft"}
-          </span>
-        </div>
-        {tour._count?.bookings > 0 && (
-          <span className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-card/90 px-2 py-0.5 text-xs font-semibold backdrop-blur-sm">
-            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-            {tour._count.bookings} bookings
-          </span>
-        )}
-      </div>
+            {tour.tourTitle}
+          </h3>
 
-      <div className="p-4 space-y-2">
-        <h3 className="font-semibold text-foreground leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-          {tour.tourTitle}
-        </h3>
+          {/* Row 4: Description (2 lines) & Included count */}
+          <div className="flex items-start justify-between gap-2">
+            {tour.tourDescription ? (
+              <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
+                {tour.tourDescription}
+              </p>
+            ) : (
+              <div className="flex-1" />
+            )}
+            {tour.included && tour.included.length > 0 && (
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
+                +{tour.included.length} included
+              </span>
+            )}
+          </div>
 
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="line-clamp-1">{tour.tourDestination}</span>
-        </div>
-
-        {tour.tourDescription && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {tour.tourDescription}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between pt-1 border-t border-border/40 mt-2">
-          {tour.tourDuration && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {tour.tourDuration} days
-            </span>
-          )}
-          {displayPrice() && (
-            <span className="text-base font-bold text-primary">
-              {displayPrice()}
-            </span>
-          )}
+          {/* Row 5: Rating & Price */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span className="text-sm font-medium">
+                {rating > 0 ? rating.toFixed(1) : "..."}
+              </span>
+            </div>
+            {displayPrice() && (
+              <span className="text-lg font-bold text-primary">
+                {displayPrice()}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </Link>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tour</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{tour.tourTitle}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

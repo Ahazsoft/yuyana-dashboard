@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
         password: true,
         role: true,
         active: true,
-        // failedLoginCount: true,
-        // lockedUntil: true,
+        failedLoginCount: true,
+        lockedUntil: true,
       },
     });
   } catch (err) {

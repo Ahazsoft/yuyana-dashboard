@@ -1,441 +1,442 @@
-  // This is your Prisma schema file,
-  // learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-  generator client {
-    provider = "prisma-client-js"
-    engineType = "binary"
-  }
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
 
-  datasource db {
-    provider = "postgresql"
-    // url and directUrl should be set via environment variables
-  }
+datasource db {
+  provider = "postgresql"
+  // url and directUrl should be set via environment variables
+}
 
-  // ----- ENUMS -----
-  enum UserRole {
-    ADMIN
-    SALES
-    MARKETING
-    VIEWER
-  }
+// ----- ENUMS -----
+enum UserRole {
+  ADMIN
+  SALES
+  MARKETING
+  VIEWER
+}
 
-  enum LeadStatus {
-    NEW
-    CONTACTED
-    QUALIFIED
-    PROPOSAL_SENT
-    NEGOTIATING
-    WON
-    LOST
-    ARCHIVED
-  }
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATING
+  WON
+  LOST
+  ARCHIVED
+}
 
-  enum BookingStatus {
-    INQUIRY
-    TENTATIVE
-    CONFIRMED
-    CANCELLED
-    COMPLETED
-  }
+enum BookingStatus {
+  INQUIRY
+  TENTATIVE
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
 
-  enum PaymentStatus {
-    PENDING
-    COMPLETED
-    FAILED
-    REFUNDED
-  }
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
 
-  enum PaymentProvider {
-    CHAPA
-    STRIPE
-    PAYPAL
-    MANUAL
-  }
+enum PaymentProvider {
+  CHAPA
+  STRIPE
+  PAYPAL
+  MANUAL
+}
 
-  enum CampaignStatus {
-    DRAFT
-    SCHEDULED
-    RUNNING
-    COMPLETED
-    PAUSED
-  }
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  PAUSED
+}
 
-  enum SubscriptionStatus {
-    SUBSCRIBED
-    UNSUBSCRIBED
-    BOUNCED
-    COMPLAINED
-  }
+enum SubscriptionStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
 
-  // ----- EXISTING TOUR TABLES (with added relation to Review) -----
-  model TourPackage {
-    id              String   @id @default(uuid()) @db.Uuid
-    slugUrl         String   @unique @map("slug_url")
-    imageUrl        String?  @map("image_url")
-    tourTitle       String   @map("tour_title")
-    tourDescription String?  @map("tour_description")
-    tourDuration    Int?     @map("tour_duration")
-    tourDestination String   @map("tour_destination")
-    tourPrice       Json?    @map("tour_price") // JSONB
-    isPublished     Boolean  @default(false) @map("is_published")
-    included        String[]
-    excluded        String[]
-    tourDocumentUrl String?  @map("tour_document_url")
-    createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-    updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+// ----- EXISTING TOUR TABLES (with added relation to Review) -----
+model TourPackage {
+  id              String   @id @default(uuid()) @db.Uuid
+  slugUrl         String   @unique @map("slug_url")
+  imageUrl        String?  @map("image_url")
+  tourTitle       String   @map("tour_title")
+  tourDescription String?  @map("tour_description")
+  tourDuration    Int?     @map("tour_duration")
+  tourDestination String   @map("tour_destination")
+  tourPrice       Json?    @map("tour_price") // JSONB
+  isPublished     Boolean  @default(false) @map("is_published")
+  included        String[]
+  excluded        String[]
+  tourDocumentUrl String?  @map("tour_document_url")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-    tourPlanDays    TourPlanDay[]
-    bookings        Booking[] // relation to bookings
-    reviews         Review[] // relation to reviews (added)
-    @@map("tour_packages")
-  }
+  tourPlanDays TourPlanDay[]
+  bookings     Booking[] // relation to bookings
+  reviews      Review[] // relation to reviews (added)
 
-  model TourPlanDay {
-    id            Int      @id @default(autoincrement())
-    tourPackageId String   @map("tour_package_id") @db.Uuid
-    dayNumber     Int      @map("day_number")
-    title         String?
-    description   String?
-    items         String[]
-    boldtext      String?
-    createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-    updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  @@map("tour_packages")
+}
 
-    tourPackage TourPackage @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+model TourPlanDay {
+  id            Int      @id @default(autoincrement())
+  tourPackageId String   @map("tour_package_id") @db.Uuid
+  dayNumber     Int      @map("day_number")
+  title         String?
+  description   String?
+  items         String[]
+  boldtext      String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-    @@unique([tourPackageId, dayNumber])
-    @@map("tour_plan_days")
-  }
+  tourPackage TourPackage @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
 
-  // ----- NEW CRM TABLES -----
-  model User {
-    id                   String    @id @default(cuid())
-    email                String    @unique
-    password             String
-    name                 String
-    role                 UserRole  @default(VIEWER)
-    active               Boolean   @default(true)
-    lastLoginAt          DateTime?
-    failedLoginCount     Int       @default(0)
-    lockedUntil          DateTime?
-    passwordResetToken   String?
-    passwordResetExpires DateTime?
-    createdAt            DateTime  @default(now())
-    updatedAt            DateTime  @updatedAt
+  @@unique([tourPackageId, dayNumber])
+  @@map("tour_plan_days")
+}
 
-    customers      Customer[]
-    leads          Lead[]
-    bookings       Booking[]
-    campaigns      Campaign[]
-    emailLogs      EmailLog[]
-    refreshTokens  RefreshToken[]
-    auditLogs      AuditLog[]
-    segments       Segment[]
-    automationRules AutomationRule[]
-    documents      Document[]
+// ----- NEW CRM TABLES -----
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String
+  name                 String
+  role                 UserRole  @default(VIEWER)
+  active               Boolean   @default(true)
+  lastLoginAt          DateTime?
+  failedLoginCount     Int       @default(0)
+  lockedUntil          DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-    @@index([email])
-    @@index([role])
-    @@index([active])
-  }
+  customers       Customer[]
+  leads           Lead[]
+  bookings        Booking[]
+  campaigns       Campaign[]
+  emailLogs       EmailLog[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  segments        Segment[]
+  automationRules AutomationRule[]
+  documents       Document[]
 
-  model RefreshToken {
-    id        String   @id @default(cuid())
-    userId    String
-    tokenHash String   @unique // SHA-256 hash of the raw refresh token
-    expiresAt DateTime
-    createdAt DateTime @default(now())
+  @@index([email])
+  @@index([role])
+  @@index([active])
+}
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // SHA-256 hash of the raw refresh token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-    @@index([userId])
-    @@index([expiresAt])
-  }
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  model AuditLog {
-    id         String   @id @default(cuid())
-    actorId    String?  // nullable for system/unauthenticated actions
-    action     String   // e.g. "lead.status_changed", "user.login", "campaign.sent"
-    entityType String?  // e.g. "Lead", "Booking", "User"
-    entityId   String?
-    ipAddress  String?
-    userAgent  String?
-    meta       Json?    // additional context
-    createdAt  DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+}
 
-    actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // nullable for system/unauthenticated actions
+  action     String // e.g. "lead.status_changed", "user.login", "campaign.sent"
+  entityType String? // e.g. "Lead", "Booking", "User"
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  meta       Json? // additional context
+  createdAt  DateTime @default(now())
 
-    @@index([actorId])
-    @@index([action])
-    @@index([entityType, entityId])
-    @@index([createdAt])
-  }
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
-  model ContactMessage {
-    id          String   @id @default(uuid())
-    createdAt   DateTime @default(now())
-    name        String
-    email       String
-    message     String
-  }
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
 
-  model Booking {
-    id                String        @id @default(cuid())
-    customerId        String
-    tourPackageId     String        @map("tour_package_id") @db.Uuid
-    userId            String        // Added missing field
-    numberOfGuests    Int
-    status            BookingStatus @default(INQUIRY)
-    agreedPrice       Float         // snapshot of price at booking time (HLD requirement)
-    totalPrice        Float
-    currency          String        @default("ETB")
-    bookingDate       DateTime      @default(now())
-    travelDate        DateTime?
-    notes             String?
-    paymentLinkUrl    String?       // generated payment link URL
-    paymentReference  String?       // provider's payment reference ID
-    createdAt         DateTime      @default(now())
-    updatedAt         DateTime      @updatedAt
+model ContactMessage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  name      String
+  email     String
+  message   String
+}
 
-    customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-    tourPackage TourPackage       @relation(fields: [tourPackageId], references: [id])
-    user        User              @relation(fields: [userId], references: [id])
-    payments    Payment[]
-    activities  BookingActivity[]
+model Booking {
+  id               String        @id @default(cuid())
+  customerId       String
+  tourPackageId    String        @map("tour_package_id") @db.Uuid
+  userId           String // Added missing field
+  numberOfGuests   Int
+  status           BookingStatus @default(INQUIRY)
+  agreedPrice      Float // snapshot of price at booking time (HLD requirement)
+  totalPrice       Float
+  currency         String        @default("ETB")
+  bookingDate      DateTime      @default(now())
+  travelDate       DateTime?
+  notes            String?
+  paymentLinkUrl   String? // generated payment link URL
+  paymentReference String? // provider's payment reference ID
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-    @@index([customerId])
-    @@index([tourPackageId])
-    @@index([userId])
-    @@index([status])
-    @@index([travelDate])
-  }
+  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tourPackage TourPackage       @relation(fields: [tourPackageId], references: [id])
+  user        User              @relation(fields: [userId], references: [id])
+  payments    Payment[]
+  activities  BookingActivity[]
 
-  model Campaign {
-    id            String         @id @default(cuid())
-    name          String
-    status        CampaignStatus @default(DRAFT)
-    description   String?
-    subject       String?        // email subject
-    content       String?        // email body (HTML or text)
-    segmentId     String?        // linked Segment model
-    targetSegment Json?          // inline criteria (used if segmentId is null)
-    recipientCount Int           @default(0)
-    createdBy     String
-    scheduledDate DateTime?
-    sentDate      DateTime?
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
+  @@index([customerId])
+  @@index([tourPackageId])
+  @@index([userId])
+  @@index([status])
+  @@index([travelDate])
+}
 
-    user      User       @relation(fields: [createdBy], references: [id])
-    segment   Segment?   @relation(fields: [segmentId], references: [id])
-    emailLogs EmailLog[]
+model Campaign {
+  id             String         @id @default(cuid())
+  name           String
+  status         CampaignStatus @default(DRAFT)
+  description    String?
+  subject        String? // email subject
+  content        String? // email body (HTML or text)
+  segmentId      String? // linked Segment model
+  targetSegment  Json? // inline criteria (used if segmentId is null)
+  recipientCount Int            @default(0)
+  createdBy      String
+  scheduledDate  DateTime?
+  sentDate       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-    @@index([createdBy])
-    @@index([status])
-    @@index([segmentId])
-    @@index([scheduledDate])
-  }
+  user      User       @relation(fields: [createdBy], references: [id])
+  segment   Segment?   @relation(fields: [segmentId], references: [id])
+  emailLogs EmailLog[]
 
-  model EmailLog {
-    id             String    @id @default(cuid())
-    campaignId     String?
-    userId         String
-    recipientEmail String
-    subject        String?
-    status         String    @default("pending") // pending, sent, bounced, failed
-    openedAt       DateTime?
-    clickedAt      DateTime?
-    createdAt      DateTime  @default(now())
-    updatedAt      DateTime  @updatedAt
+  @@index([createdBy])
+  @@index([status])
+  @@index([segmentId])
+  @@index([scheduledDate])
+}
 
-    campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-    user     User      @relation(fields: [userId], references: [id])
+model EmailLog {
+  id             String    @id @default(cuid())
+  campaignId     String?
+  userId         String
+  recipientEmail String
+  subject        String?
+  status         String    @default("pending") // pending, sent, bounced, failed
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-    @@index([campaignId])
-    @@index([userId])
-    @@index([recipientEmail])
-    @@index([status])
-  }
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id])
 
-  model Review {
-    id            String   @id @default(cuid())
-    customerId    String? // if the reviewer is a registered customer
-    tourPackageId String?  @map("tour_package_id") @db.Uuid // 🔹 must match UUID type of TourPackage.id
-    name          String // name of the reviewer (always filled)
-    email         String // email of the reviewer
-    rating        Int // 1-5    
-    comment       String
-    approved      Boolean  @default(false) // admin approval before public display
-    verified      Boolean  @default(false) // true if reviewer was authenticated (customerId set)
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+  @@index([campaignId])
+  @@index([userId])
+  @@index([recipientEmail])
+  @@index([status])
+}
 
-    customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
-    tourPackage TourPackage? @relation(fields: [tourPackageId], references: [id], onDelete: SetNull)
+model Review {
+  id            String   @id @default(cuid())
+  customerId    String? // if the reviewer is a registered customer
+  tourPackageId String?  @map("tour_package_id") @db.Uuid // 🔹 must match UUID type of TourPackage.id
+  name          String // name of the reviewer (always filled)
+  email         String // email of the reviewer
+  rating        Int // 1-5    
+  comment       String
+  approved      Boolean  @default(false) // admin approval before public display
+  verified      Boolean  @default(false) // true if reviewer was authenticated (customerId set)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-    @@index([tourPackageId])
-    @@index([approved])
-    @@map("reviews")
-  }
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tourPackage TourPackage? @relation(fields: [tourPackageId], references: [id], onDelete: SetNull)
 
-  model Customer {
-    id          String   @id @default(cuid())
-    name        String
-    email       String   @unique
-    phone       String?
-    userId      String?  // Added missing field
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+  @@index([tourPackageId])
+  @@index([approved])
+  @@map("reviews")
+}
 
-    user        User?    @relation(fields: [userId], references: [id])
-    bookings    Booking[]
-    reviews     Review[]
-   // ratings     TourRating[]
-    documents   Document[]
-    leads       Lead[]
-  }
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  userId    String? // Added missing field
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  model Lead {
-    id             String      @id @default(cuid())
-    customerId     String
-    userId         String?
-    description    String?
-    status         LeadStatus  @default(NEW)
-    source         String?
-    priority       String      @default("MEDIUM") // LOW, MEDIUM, HIGH
-    estimatedValue Float?      @map("estimated_value")
-    createdAt      DateTime    @default(now())
-    updatedAt      DateTime    @updatedAt
+  user      User?      @relation(fields: [userId], references: [id])
+  bookings  Booking[]
+  reviews   Review[]
+  // ratings     TourRating[]
+  documents Document[]
+  leads     Lead[]
+}
 
-    customer       Customer    @relation(fields: [customerId], references: [id])
-    user           User?       @relation(fields: [userId], references: [id])
-    leadActivity   LeadActivity[]
-    segmentId      String?
-    segment        Segment?    @relation(fields: [segmentId], references: [id])
-  }
+model Lead {
+  id             String     @id @default(cuid())
+  customerId     String
+  userId         String?
+  description    String?
+  status         LeadStatus @default(NEW)
+  source         String?
+  priority       String     @default("MEDIUM") // LOW, MEDIUM, HIGH
+  estimatedValue Float?     @map("estimated_value")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  // Added Missing Models
-  model LeadActivity {
-    id          String   @id @default(cuid())
-    leadId      String
-    type        String
-    description String
-    createdAt   DateTime @default(now())
+  customer     Customer       @relation(fields: [customerId], references: [id])
+  user         User?          @relation(fields: [userId], references: [id])
+  leadActivity LeadActivity[]
+  segmentId    String?
+  segment      Segment?       @relation(fields: [segmentId], references: [id])
+}
 
-    lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  }
+// Added Missing Models
+model LeadActivity {
+  id          String   @id @default(cuid())
+  leadId      String
+  type        String
+  description String
+  createdAt   DateTime @default(now())
 
-  model BookingActivity {
-    id          String   @id @default(cuid())
-    bookingId   String
-    type        String
-    description String
-    createdAt   DateTime @default(now())
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
 
-    booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  }
+model BookingActivity {
+  id          String   @id @default(cuid())
+  bookingId   String
+  type        String
+  description String
+  createdAt   DateTime @default(now())
 
-  model Payment {
-    id               String          @id @default(cuid())
-    bookingId        String
-    amount           Float
-    currency         String          @default("ETB")
-    status           PaymentStatus   @default(PENDING)
-    provider         PaymentProvider @default(MANUAL)
-    providerRef      String?
-    createdAt        DateTime        @default(now())
-    updatedAt        DateTime        @updatedAt
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
 
-    booking          Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  }
+model Payment {
+  id          String          @id @default(cuid())
+  bookingId   String
+  amount      Float
+  currency    String          @default("ETB")
+  status      PaymentStatus   @default(PENDING)
+  provider    PaymentProvider @default(MANUAL)
+  providerRef String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
- // model TourRating {
- //   id          String   @id @default(cuid())
- //   tourId      String   @db.Uuid
-  //  customerId  String
-    
-  //  createdAt   DateTime @default(now())
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
 
- //   tourPackage TourPackage @relation(fields: [tourId], references: [id], onDelete: Cascade)
- //   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
- // }
+// model TourRating {
+//   id          String   @id @default(cuid())
+//   tourId      String   @db.Uuid
+//  customerId  String
 
-  model Segment {
-    id          String   @id @default(cuid())
-    name        String
-    description String?
-    userId      String?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+//  createdAt   DateTime @default(now())
 
-    leads       Lead[]
-    campaigns   Campaign[]
-    user        User?    @relation(fields: [userId], references: [id])
-  }
+//   tourPackage TourPackage @relation(fields: [tourId], references: [id], onDelete: Cascade)
+//   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+// }
 
-  model AutomationRule {
-    id          String   @id @default(cuid())
-    name        String
-    condition   String
-    action      String
-    userId      String?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-    user        User?    @relation(fields: [userId], references: [id])
-  }
+  leads     Lead[]
+  campaigns Campaign[]
+  user      User?      @relation(fields: [userId], references: [id])
+}
 
-  // --- NEW CRM ADVANCED MODELS ---
+model AutomationRule {
+  id        String   @id @default(cuid())
+  name      String
+  condition String
+  action    String
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  model Document {
-    id          String   @id @default(cuid())
-    name        String
-    fileUrl     String
-    mimeType    String
-    size        Int?
-    uploadedBy  String
-    customerId  String?
-    leadId      String?
-    bookingId   String?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+  user User? @relation(fields: [userId], references: [id])
+}
 
-    user        User     @relation(fields: [uploadedBy], references: [id])
-    customer    Customer? @relation(fields: [customerId], references: [id])
-  }
+// --- NEW CRM ADVANCED MODELS ---
 
-  model KanbanBoard {
-    id          String   @id @default(cuid())
-    title       String
-    type        String   // e.g. "LEADS", "BOOKINGS"
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  fileUrl    String
+  mimeType   String
+  size       Int?
+  uploadedBy String
+  customerId String?
+  leadId     String?
+  bookingId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-    columns     KanbanColumn[]
-  }
+  user     User      @relation(fields: [uploadedBy], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+}
 
-  model KanbanColumn {
-    id          String   @id @default(cuid())
-    boardId     String
-    title       String
-    order       Int
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+model KanbanBoard {
+  id        String   @id @default(cuid())
+  title     String
+  type      String // e.g. "LEADS", "BOOKINGS"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    board       KanbanBoard   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-    cards       KanbanCard[]
-  }
+  columns KanbanColumn[]
+}
 
-  model KanbanCard {
-    id          String   @id @default(cuid())
-    columnId    String
-    title       String
-    description String?
-    order       Int
-    leadId      String?  @unique
-    bookingId   String?  @unique
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+model KanbanColumn {
+  id        String   @id @default(cuid())
+  boardId   String
+  title     String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    column      KanbanColumn  @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  }
+  board KanbanBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards KanbanCard[]
+}
+
+model KanbanCard {
+  id          String   @id @default(cuid())
+  columnId    String
+  title       String
+  description String?
+  order       Int
+  leadId      String?  @unique
+  bookingId   String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  column KanbanColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+}

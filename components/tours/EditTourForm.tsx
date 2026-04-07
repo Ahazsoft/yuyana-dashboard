@@ -1,16 +1,39 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Trash2, Plus, ArrowLeft } from "lucide-react";
+import React, { useState } from "react";
+import { Trash2, Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import type { TourPackage } from "@/app/data/mockTours";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+
+interface TourPlanDay {
+  dayNumber: number;
+  title: string | null;
+  description: string | null;
+  items: string[];
+  boldtext: string | null;
+}
+
+interface TourPackage {
+  id: string;
+  slugUrl: string;
+  imageUrl: string | null;
+  tourTitle: string;
+  tourDescription: string | null;
+  tourDuration: number | null;
+  tourDestination: string;
+  tourPrice: any;
+  isPublished: boolean;
+  included: string[];
+  excluded: string[];
+  tourDocumentUrl: string | null;
+  tourPlanDays: TourPlanDay[];
+}
 
 interface EditTourFormProps {
   initialData: TourPackage;
@@ -26,89 +49,47 @@ interface DayForm {
 
 const EditTourForm = ({ initialData }: EditTourFormProps) => {
   const router = useRouter();
-
-  if (!initialData) {
-    return (
-      <div className="p-12">
-        <img
-          src="https://i.imgur.com/6KAfjPq_d.jpeg?maxwidth=520&shape=thumb&fidelity=high"
-          alt=""
-          style={{
-            width: "10vw",
-            height: "10vw",
-            border: "1px solid red",
-          }}
-        />
-        <h1>404 Not found</h1>
-      </div>
-    );
-  }
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Basic fields
-  const [title, setTitle] = useState(
-    initialData?.tourTitle ?? initialData?.tourTitle ?? "",
-  );
-  const [slug, setSlug] = useState(
-    initialData?.slugUrl ?? initialData?.id ?? "",
-  );
-  const [description, setDescription] = useState(
-    initialData?.tourDescription ?? initialData?.tourDescription ?? "",
-  );
-  const [destination, setDestination] = useState(
-    initialData?.tourDestination ?? initialData?.tourDestination ?? "",
-  );
-  const [duration, setDuration] = useState(
-    initialData?.tourDuration?.toString() ??
-      initialData?.tourDuration?.toString().replace(" days", "") ??
-      "",
-  );
+  const [title, setTitle] = useState(initialData?.tourTitle ?? "");
+  const [slug, setSlug] = useState(initialData?.slugUrl ?? "");
+  const [description, setDescription] = useState(initialData?.tourDescription ?? "");
+  const [destination, setDestination] = useState(initialData?.tourDestination ?? "");
+  const [duration, setDuration] = useState(initialData?.tourDuration?.toString() ?? "");
 
   // File states
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [newDocumentFile, setNewDocumentFile] = useState<File | null>(null);
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
-
-  // Existing file URLs (for display)
-  const [existingImageUrl, setExistingImageUrl] = useState(
-    initialData?.imageUrl ?? initialData?.imageUrl ?? "",
-  );
-  const [existingDocumentUrl, setExistingDocumentUrl] = useState(
-    initialData?.tourDocumentUrl ?? initialData?.tourDocumentUrl ?? "",
-  );
+  const [existingImageUrl, setExistingImageUrl] = useState(initialData?.imageUrl ?? "");
+  const [existingDocumentUrl, setExistingDocumentUrl] = useState(initialData?.tourDocumentUrl ?? "");
 
   // Included / excluded
   const [included, setIncluded] = useState<string[]>(
-    initialData?.included?.length ? initialData.included : [""],
+    initialData?.included?.length ? initialData.included : [""]
   );
   const [excluded, setExcluded] = useState<string[]>(
-    initialData?.excluded?.length ? initialData.excluded : [""],
+    initialData?.excluded?.length ? initialData.excluded : [""]
   );
 
   // Pricing
-  const initPrice = initialData?.tourPrice ?? initialData?.tourPrice ?? null;
+  const initPrice = initialData?.tourPrice ?? null;
 
   const [advancedPricing, setAdvancedPricing] = useState(() => {
     if (!initPrice) return false;
     const adult = Number((initPrice as any)?.adultprice ?? 0);
     const kid = Number((initPrice as any)?.kidprice ?? 0);
     const tag = Number((initPrice as any)?.pricetag ?? 0);
-
-    return (
-      !isNaN(adult) &&
-      !isNaN(kid) &&
-      !isNaN(tag) &&
-      (adult > 0 || kid > 0 || tag > 0)
-    );
+    return adult > 0 || kid > 0 || tag > 0;
   });
 
   const [simplePrice, setSimplePrice] = useState<number | null>(
     typeof initPrice === "number"
       ? initPrice
-      : typeof initialData?.tourPrice === "number"
-        ? initialData.tourPrice
-        : (typeof initPrice === "object" && initPrice !== null
-            ? Number((initPrice as any).pricetag)
-            : 0) || 0,
+      : (typeof initPrice === "object" && initPrice !== null
+          ? Number((initPrice as any).pricetag)
+          : 0) || 0
   );
 
   const [pricing, setPricing] = useState({
@@ -126,32 +107,22 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
         : 0,
   });
 
-  // Published state
-  //@ts-ignore
   const [published, setPublished] = useState(initialData?.isPublished ?? true);
 
   // Itinerary
   const [days, setDays] = useState<DayForm[]>(
     initialData?.tourPlanDays?.length
-      ? initialData.tourPlanDays.map((d: any) => ({
+      ? initialData.tourPlanDays.map((d) => ({
           dayNumber: d.dayNumber,
-          title: d.title || "",
-          description: d.description || "",
-          items: d.items || [],
-          boldtext: d.boldtext || "",
+          title: d.title ?? "",
+          description: d.description ?? "",
+          items: d.items ?? [],
+          boldtext: d.boldtext ?? "",
         }))
-      : [
-          {
-            dayNumber: 1,
-            title: "",
-            description: "",
-            items: [""],
-            boldtext: "",
-          },
-        ],
+      : [{ dayNumber: 1, title: "", description: "", items: [""], boldtext: "" }]
   );
 
-  // Handle file inputs
+  // File handlers
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -169,17 +140,15 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
     }
   };
 
-  // Manage included/excluded items
-  const addListItem = (
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-  ) => {
+  // List helpers
+  const addListItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter((prev) => [...prev, ""]);
   };
 
   const updateListItem = (
     setter: React.Dispatch<React.SetStateAction<string[]>>,
     idx: number,
-    value: string,
+    value: string
   ) => {
     setter((prev) => {
       const updated = [...prev];
@@ -190,15 +159,14 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
 
   const removeListItem = (
     setter: React.Dispatch<React.SetStateAction<string[]>>,
-    idx: number,
+    idx: number
   ) => {
     setter((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // Manage itinerary days
+  // Itinerary helpers
   const addDay = () => {
-    const maxDayNum =
-      days.length > 0 ? Math.max(...days.map((d) => d.dayNumber)) : 0;
+    const maxDayNum = days.length > 0 ? Math.max(...days.map((d) => d.dayNumber)) : 0;
     setDays((prev) => [
       ...prev,
       {
@@ -253,19 +221,19 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
     });
   };
 
-  // Handle form submission
+  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Prepare form data
     const formData = new FormData();
 
     // Basic info
     formData.append("slugUrl", slug);
     formData.append("tourTitle", title);
     formData.append("tourDestination", destination);
-    formData.append("tourDescription", description);
-    formData.append("tourDuration", duration);
+    if (description) formData.append("tourDescription", description);
+    if (duration) formData.append("tourDuration", duration);
 
     // Pricing
     if (advancedPricing) {
@@ -275,33 +243,29 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
           adultprice: pricing.adult,
           kidprice: pricing.kid,
           pricetag: pricing.tag,
-        }),
+        })
       );
     } else {
-      formData.append("tourPrice", JSON.stringify(simplePrice));
+      formData.append("tourPrice", JSON.stringify(simplePrice ?? 0));
     }
 
-    // Included/excluded
+    // Included/Excluded
     formData.append("included", JSON.stringify(included.filter(Boolean)));
     formData.append("excluded", JSON.stringify(excluded.filter(Boolean)));
 
     // Itinerary
     formData.append("tourPlanDays", JSON.stringify(days));
 
-    // Status
+    // Publish status
     formData.append("isPublished", published.toString());
 
     // Files
-    if (newImageFile) {
-      formData.append("image", newImageFile);
-    }
-    if (newDocumentFile) {
-      formData.append("document", newDocumentFile);
-    }
+    if (newImageFile) formData.append("image", newImageFile);
+    if (newDocumentFile) formData.append("document", newDocumentFile);
 
     try {
-      // Call the API to update the tour
-      const response = await fetch(`/api/tours/edit/${slug}`, {
+      // Use the tour ID (UUID) for the edit endpoint
+      const response = await fetch(`/api/tours/edit/${initialData.id}`, {
         method: "POST",
         body: formData,
       });
@@ -313,21 +277,28 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
         return;
       }
 
-      alert(result.message || "Tour updated successfully!");
-      console.log("Updated tour data:", result.tour);
-
-      // Redirect to tours list
+      alert("Tour updated successfully!");
       router.push("/admin/tours");
     } catch (error) {
       console.error("Error updating tour:", error);
       alert("Something went wrong while updating the tour.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (!initialData) {
+    return (
+      <div className="p-12 text-center">
+        <h1 className="text-2xl font-bold">404 Not Found</h1>
+        <p className="text-muted-foreground mt-2">Tour data could not be loaded.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
-        {/* Back + Title */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -342,11 +313,9 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* General Info */}
+          {/* General Information */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">
-              General Information
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">General Information</h2>
             <Separator />
 
             <div className="space-y-2">
@@ -428,9 +397,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                     />
                   </div>
                 ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    No image uploaded
-                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">No image uploaded</p>
                 )}
               </div>
 
@@ -456,9 +423,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="document">
-                  Upload Tour Document (PDF, DOCX, etc.)
-                </Label>
+                <Label htmlFor="document">Tour Document (PDF, DOCX, etc.)</Label>
                 <Input
                   id="document"
                   type="file"
@@ -509,9 +474,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                     id="adult-price"
                     type="number"
                     value={pricing.adult}
-                    onChange={(e) =>
-                      setPricing({ ...pricing, adult: Number(e.target.value) })
-                    }
+                    onChange={(e) => setPricing({ ...pricing, adult: Number(e.target.value) })}
                     min="0"
                     step="10"
                   />
@@ -522,9 +485,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                     id="kid-price"
                     type="number"
                     value={pricing.kid}
-                    onChange={(e) =>
-                      setPricing({ ...pricing, kid: Number(e.target.value) })
-                    }
+                    onChange={(e) => setPricing({ ...pricing, kid: Number(e.target.value) })}
                     min="0"
                     step="10"
                   />
@@ -535,9 +496,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                     id="tag-price"
                     type="number"
                     value={pricing.tag}
-                    onChange={(e) =>
-                      setPricing({ ...pricing, tag: Number(e.target.value) })
-                    }
+                    onChange={(e) => setPricing({ ...pricing, tag: Number(e.target.value) })}
                     min="0"
                     step="10"
                   />
@@ -560,9 +519,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
 
           {/* Inclusions */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">
-              Inclusions
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">Inclusions</h2>
             <Separator />
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -572,9 +529,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                   <div key={idx} className="flex gap-2">
                     <Input
                       value={item}
-                      onChange={(e) =>
-                        updateListItem(setIncluded, idx, e.target.value)
-                      }
+                      onChange={(e) => updateListItem(setIncluded, idx, e.target.value)}
                       placeholder="e.g. Hotel"
                     />
                     {included.length > 1 && (
@@ -605,9 +560,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                   <div key={idx} className="flex gap-2">
                     <Input
                       value={item}
-                      onChange={(e) =>
-                        updateListItem(setExcluded, idx, e.target.value)
-                      }
+                      onChange={(e) => updateListItem(setExcluded, idx, e.target.value)}
                       placeholder="e.g. Flights"
                     />
                     {excluded.length > 1 && (
@@ -637,15 +590,8 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
           {/* Itinerary */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                Itinerary
-              </h2>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addDay}
-              >
+              <h2 className="text-lg font-semibold text-foreground">Itinerary</h2>
+              <Button type="button" variant="outline" size="sm" onClick={addDay}>
                 <Plus className="mr-1 h-3 w-3" /> Add Day
               </Button>
             </div>
@@ -653,8 +599,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
 
             {days.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                No days added yet. Click "Add Day" to start building the
-                itinerary.
+                No days added yet. Click "Add Day" to start building the itinerary.
               </p>
             )}
 
@@ -681,9 +626,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                       <Label>Title (optional)</Label>
                       <Input
                         value={day.title}
-                        onChange={(e) =>
-                          updateDay(idx, "title", e.target.value)
-                        }
+                        onChange={(e) => updateDay(idx, "title", e.target.value)}
                         placeholder="e.g. Arrival in Addis Ababa"
                       />
                     </div>
@@ -692,9 +635,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                       <Label>Bold Text (optional)</Label>
                       <Input
                         value={day.boldtext}
-                        onChange={(e) =>
-                          updateDay(idx, "boldtext", e.target.value)
-                        }
+                        onChange={(e) => updateDay(idx, "boldtext", e.target.value)}
                         placeholder="e.g. Free time"
                       />
                     </div>
@@ -704,9 +645,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                     <Label>Description (optional)</Label>
                     <Textarea
                       value={day.description}
-                      onChange={(e) =>
-                        updateDay(idx, "description", e.target.value)
-                      }
+                      onChange={(e) => updateDay(idx, "description", e.target.value)}
                       rows={2}
                       placeholder="What will happen during this day?"
                     />
@@ -718,9 +657,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                       <div key={iIdx} className="flex gap-2">
                         <Input
                           value={item}
-                          onChange={(e) =>
-                            updateDayItem(idx, iIdx, e.target.value)
-                          }
+                          onChange={(e) => updateDayItem(idx, iIdx, e.target.value)}
                         />
                         {day.items.length > 1 && (
                           <Button
@@ -750,9 +687,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
 
           {/* Publish Settings */}
           <section className="space-y-4 rounded-lg border border-black bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">
-              Publish Settings
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">Publish Settings</h2>
             <Separator />
 
             <div className="flex items-center justify-between">
@@ -764,11 +699,7 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
                   Controls whether this tour is visible to customers
                 </p>
               </div>
-              <Switch
-                id="published"
-                checked={published}
-                onCheckedChange={setPublished}
-              />
+              <Switch id="published" checked={published} onCheckedChange={setPublished} />
             </div>
           </section>
 
@@ -778,10 +709,20 @@ const EditTourForm = ({ initialData }: EditTourFormProps) => {
               type="button"
               variant="outline"
               onClick={() => router.push("/admin/tours")}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit">Update Tour</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Tour"
+              )}
+            </Button>
           </div>
         </form>
       </div>

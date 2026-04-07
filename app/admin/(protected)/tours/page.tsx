@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, MapPin, Clock, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Plus } from "lucide-react";
+import TourCard from "@/components/tours/TourCard"; // Import the redesigned card
 
 // Type definitions (should match your Prisma schema)
 interface TourPlanDay {
@@ -32,85 +39,17 @@ interface TourPackage {
   createdAt: string;
   updatedAt: string;
   tourPlanDays: TourPlanDay[];
-}
-
-// Simple Tour Card Component (can be moved to separate file)
-const TourCard = ({ tour }: { tour: TourPackage }) => {
-  const getPriceDisplay = () => {
-    if (!tour.tourPrice) return "Contact us";
-    if (typeof tour.tourPrice === "number") return `$${tour.tourPrice}`;
-    if (tour.tourPrice.price) return `$${tour.tourPrice.price}`;
-    if (tour.tourPrice.pricetag) return `$${tour.tourPrice.pricetag}`;
-    return "Contact us";
+  _count?: {
+    bookings: number;
   };
-
-  return (
-    <div className="group rounded-xl border bg-card shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-      {/* Image */}
-      <div className="relative aspect-[16/9] overflow-hidden bg-muted">
-        {tour.imageUrl ? (
-          <Image
-            src={tour.imageUrl}
-            alt={tour.tourTitle}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-muted">
-            <span className="text-sm text-muted-foreground">No image</span>
-          </div>
-        )}
-        {/* Published badge */}
-        <div className="absolute top-2 right-2">
-          <div
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              tour.isPublished
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            }`}
-          >
-            {tour.isPublished ? "Published" : "Draft"}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-5 space-y-3">
-        <h3 className="font-semibold text-lg line-clamp-1">{tour.tourTitle}</h3>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5" />
-            <span className="line-clamp-1">{tour.tourDestination}</span>
-          </div>
-          {tour.tourDuration && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{tour.tourDuration} days</span>
-            </div>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {tour.tourDescription || "No description provided."}
-        </p>
-        <div className="flex justify-between items-center pt-2">
-          <div className="font-bold text-lg">{getPriceDisplay()}</div>
-          <Link href={`/admin/tours/edit/${tour.slugUrl}`}>
-            <Button variant="outline" size="sm" className="gap-1">
-              <Eye className="w-3.5 h-3.5" />
-              Edit
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
+}
 
 export default function ToursManagementPage() {
   const [tours, setTours] = useState<TourPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
 
   useEffect(() => {
     async function fetchTours() {
@@ -193,11 +132,17 @@ export default function ToursManagementPage() {
     );
   }
 
-  const filtered = tours.filter(
-    (t) =>
+  // Apply filters: search + status
+  const filtered = tours.filter((t) => {
+    const matchesSearch =
       t.tourTitle.toLowerCase().includes(search.toLowerCase()) ||
-      t.tourDestination.toLowerCase().includes(search.toLowerCase())
-  );
+      t.tourDestination.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "published" && t.isPublished) ||
+      (statusFilter === "draft" && !t.isPublished);
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen pt-6">
@@ -219,14 +164,30 @@ export default function ToursManagementPage() {
           </Link>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tours by title or destination..."
-            className="pl-10 h-12 bg-white/80 backdrop-blur-sm border border-slate-200/80"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Search and Filter Row */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search tours by title or destination..."
+              className="pl-10 h-12 bg-white/80 backdrop-blur-sm border border-slate-200/80"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}
+          >
+            <SelectTrigger className="w-full sm:w-[180px] h-12 bg-white/80 backdrop-blur-sm">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tours</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -240,11 +201,18 @@ export default function ToursManagementPage() {
             <p className="text-muted-foreground mt-1">
               {tours.length === 0
                 ? "No tours in the database yet. Create your first tour using the button above."
-                : "Try adjusting your search to find what you're looking for."}
+                : "Try adjusting your search or filter to find what you're looking for."}
             </p>
-            {tours.length > 0 && (
-              <Button variant="outline" className="mt-4" onClick={() => setSearch("")}>
-                Reset Search
+            {(search || statusFilter !== "all") && (
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                }}
+              >
+                Reset Filters
               </Button>
             )}
           </div>
