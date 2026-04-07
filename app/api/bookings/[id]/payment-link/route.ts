@@ -1,32 +1,18 @@
-//@ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import {prisma} from "@/lib/prisma";
-// import { getAuthUser, requireRole } from "@/lib/auth/require-role";  // Temporarily disabled
+import { getAuthUser, requireRole } from "@/lib/auth/require-role";
 import { initializeChapaPayment } from "@/lib/payments/chapa";
 import { createStripeSession } from "@/lib/payments/stripe";
-// import { logAudit } from "@/lib/audit";  // Temporarily disabled
-
-// Temporary auth bypass function
-function getTempAuth() {
-  return { userId: "temp_user", role: "ADMIN", email: "temp@example.com" };
-}
-
-// Temporary role requirement bypass
-function tempRequireRole(req: NextRequest, ...roles: string[]) {
-  return null; // Return null to indicate no forbidden access
-}
+import { logAudit } from "@/lib/audit";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  // Temporarily bypassing authentication
-  const auth = getTempAuth(); // Simulate authenticated user
-  const forbidden = tempRequireRole(req, "ADMIN", "SALES"); // Simulate role check passed
-  // const auth = getAuthUser(req);
-  // const forbidden = requireRole(req, "ADMIN", "SALES");
-  // if (forbidden) return forbidden;
+  const auth = getAuthUser(req);
+  const forbidden = requireRole(req, "ADMIN", "SALES", "MARKETING");
+  if (forbidden) return forbidden;
 
   const booking = await prisma.booking.findUnique({
     where: { id },
@@ -61,7 +47,7 @@ export async function POST(
   } else if (provider === "STRIPE") {
     const session = await createStripeSession({
       amount: booking.totalPrice,
-      currency: "USD", // Stripe usually USD in this context
+      currency: "USD",
       txRef: `booking_${id}`,
       email: booking.customer.email,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/bookings/${id}?success=true`,
@@ -80,14 +66,13 @@ export async function POST(
     },
   });
 
-  // Temporarily disabling audit logging since auth is disabled
-  // await logAudit({
-  //   actorId: auth!.userId,
-  //   action: "payment.link_generated",
-  //   entityType: "Booking",
-  //   entityId: id,
-  //   meta: { provider, link: paymentLink },
-  // });
+  await logAudit({
+    actorId: auth!.userId,
+    action: "payment.link_generated",
+    entityType: "Booking",
+    entityId: id,
+    meta: { provider, link: paymentLink },
+  });
 
   return NextResponse.json({ url: paymentLink });
 }
