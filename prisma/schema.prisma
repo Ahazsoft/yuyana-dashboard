@@ -87,7 +87,6 @@
     tourPlanDays    TourPlanDay[]
     bookings        Booking[] // relation to bookings
     reviews         Review[] // relation to reviews (added)
-    ratings         TourRating[]    // relation for simple ratings
     @@map("tour_packages")
   }
 
@@ -264,7 +263,7 @@
     tourPackageId String?  @map("tour_package_id") @db.Uuid // 🔹 must match UUID type of TourPackage.id
     name          String // name of the reviewer (always filled)
     email         String // email of the reviewer
-    rating        Int // 1-5
+    rating        Int // 1-5    
     comment       String
     approved      Boolean  @default(false) // admin approval before public display
     verified      Boolean  @default(false) // true if reviewer was authenticated (customerId set)
@@ -291,7 +290,7 @@
     user        User?    @relation(fields: [userId], references: [id])
     bookings    Booking[]
     reviews     Review[]
-    ratings     TourRating[]
+   // ratings     TourRating[]
     documents   Document[]
     leads       Lead[]
   }
@@ -350,16 +349,16 @@
     booking          Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   }
 
-  model TourRating {
-    id          String   @id @default(cuid())
-    tourId      String   @db.Uuid
-    customerId  String
-    rating      Int
-    createdAt   DateTime @default(now())
+ // model TourRating {
+ //   id          String   @id @default(cuid())
+ //   tourId      String   @db.Uuid
+  //  customerId  String
+    
+  //  createdAt   DateTime @default(now())
 
-    tourPackage TourPackage @relation(fields: [tourId], references: [id], onDelete: Cascade)
-    customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  }
+ //   tourPackage TourPackage @relation(fields: [tourId], references: [id], onDelete: Cascade)
+ //   customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+ // }
 
   model Segment {
     id          String   @id @default(cuid())

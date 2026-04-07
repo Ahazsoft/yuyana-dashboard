@@ -45,6 +45,10 @@ export async function POST(
     return NextResponse.json(tour);
   }
 
+
+  // tours/route.ts
+  // tour/[id]/route.ts
+
   const updated = await prisma.tourPackage.update({
     where: { id },
     data: { isPublished },

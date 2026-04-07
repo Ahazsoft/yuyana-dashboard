@@ -54,6 +54,10 @@ const data = {
       title: "Bookings",
       url: "/admin/bookings",
       icon: IconCalendarCheck,
+    },{
+      title: "Review",
+      url: "/admin/review",
+      icon: IconCalendarCheck,
     },
     {
       title: "Reviews",
@@ -105,7 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   />
                 </div>
                 <span className='text-base font-semibold mt-2.5'>
-                  Yuyan Admin
+                  Yuyana {/* {} */}
                 </span>
               </a>
             </SidebarMenuButton>

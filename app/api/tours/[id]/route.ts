@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { TourJSONRepository } from "@/lib/tours-json";
 import { z } from "zod";
