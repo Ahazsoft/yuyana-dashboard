@@ -32,8 +32,13 @@ export default function ToursPage() {
       try {
         const res = await fetch("/api/tours");
         if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setTours(data);
+          const data = await res.json().catch(() => null);
+          const toursData = Array.isArray(data)
+            ? data
+            : data && Array.isArray(data.data)
+            ? data.data
+            : [];
+          setTours(toursData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {

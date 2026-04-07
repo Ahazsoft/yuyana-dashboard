@@ -9,7 +9,7 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
   
   return (
     <SidebarProvider>
-      <AppSidebar data={data} />
+      <AppSidebar />
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-col flex-1 gap-4 p-4 pt-0">

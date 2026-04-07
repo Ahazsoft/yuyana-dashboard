@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -81,7 +81,7 @@ export default function LeadsPage() {
           <Button onClick={() => setShowForm(true)}>Add Lead</Button>
         </CardFooter>
       </Card>
-      {showForm && <LeadForm onClose={() => setShowForm(false)} />}
+      {/* {showForm && <LeadForm onClose={() => setShowForm(false)} />} */}
     </div>
   );
 }
