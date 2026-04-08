@@ -1,4 +1,12 @@
-import { MapPin, Clock, Star, MoreVertical, Edit, Trash2, ImageIcon } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  Star,
+  MoreVertical,
+  Edit,
+  Trash2,
+  ImageIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -44,7 +52,7 @@ const TourCard = ({ tour }: TourCardProps) => {
   const price = tour.tourPrice as Record<string, number> | null;
 
   const displayPrice = () => {
-    if (!price) return null;
+    if (!price) return "$0";
 
     const normal = Number(price.price ?? 0);
     const adult = Number(price.adultprice ?? 0);
@@ -109,13 +117,13 @@ const TourCard = ({ tour }: TourCardProps) => {
           )}
 
           {/* Diagonal Badge - Top Left */}
-          <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden pointer-events-none">
-            <div
-              className={`absolute -top-0 -left-0 w-20 h-8 rotate-[-45deg] translate-y-[14px] -translate-x-[18px] flex items-center justify-center text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${
-                tour.isPublished ? "bg-emerald-500" : "bg-red-500"
-              }`}
-            >
-              {tour.isPublished ? "Published" : "Draft"}
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-md overflow-hidden pointer-events-none bg-yellow-50">
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+
+              <span className="text-sm text-dark font-medium">
+                {rating > 0 ? rating.toFixed(1) : "5"}
+              </span>
             </div>
           </div>
 
@@ -151,7 +159,8 @@ const TourCard = ({ tour }: TourCardProps) => {
           {tour._count?.bookings ? (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {tour._count.bookings} booking{tour._count.bookings !== 1 ? "s" : ""}
+              {tour._count.bookings} booking
+              {tour._count.bookings !== 1 ? "s" : ""}
             </div>
           ) : null}
         </div>
@@ -173,12 +182,19 @@ const TourCard = ({ tour }: TourCardProps) => {
           </div>
 
           {/* Row 3: Title */}
-          <h3
-            className="font-semibold text-lg leading-tight line-clamp-1 cursor-pointer hover:text-primary transition-colors"
-            onClick={handleEdit}
-          >
-            {tour.tourTitle}
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3
+              className="font-semibold text-lg leading-tight line-clamp-1 cursor-pointer hover:text-primary transition-colors"
+              onClick={handleEdit}
+            >
+              {tour.tourTitle}
+            </h3>
+            {tour.isPublished ? (
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+            ) : (
+              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+            )}
+          </div>
 
           {/* Row 4: Description (2 lines) & Included count */}
           <div className="flex items-start justify-between gap-2">
@@ -189,21 +205,16 @@ const TourCard = ({ tour }: TourCardProps) => {
             ) : (
               <div className="flex-1" />
             )}
-            {tour.included && tour.included.length > 0 && (
+            {/* {tour.included && tour.included.length > 0 && (
               <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
                 +{tour.included.length} included
               </span>
-            )}
+            )} */}
           </div>
 
           {/* Row 5: Rating & Price */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              <span className="text-sm font-medium">
-                {rating > 0 ? rating.toFixed(1) : "..."}
-              </span>
-            </div>
+          <div className="flex items-center gap-3 pt-2">
+            <h3 className="text-md ">Price :</h3>
             {displayPrice() && (
               <span className="text-lg font-bold text-primary">
                 {displayPrice()}
@@ -219,7 +230,8 @@ const TourCard = ({ tour }: TourCardProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Tour</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{tour.tourTitle}"? This action cannot be undone.
+              Are you sure you want to delete "{tour.tourTitle}"? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
