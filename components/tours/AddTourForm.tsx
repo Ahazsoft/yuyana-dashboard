@@ -99,11 +99,10 @@ const AddTourForm = () => {
 
   // Itinerary helpers
   const addDay = () => {
-    const maxDayNum = days.length > 0 ? Math.max(...days.map((d) => d.dayNumber)) : 0;
     setDays((prev) => [
       ...prev,
       {
-        dayNumber: maxDayNum + 1,
+        dayNumber: prev.length + 1,
         title: "",
         description: "",
         items: [""],
@@ -121,7 +120,13 @@ const AddTourForm = () => {
   };
 
   const removeDay = (idx: number) => {
-    setDays((prev) => prev.filter((_, i) => i !== idx));
+    setDays((prev) => {
+      const filtered = prev.filter((_, i) => i !== idx);
+      return filtered.map((day, index) => ({
+        ...day,
+        dayNumber: index + 1,
+      }));
+    });
   };
 
   const addDayItem = (dayIdx: number) => {
@@ -489,85 +494,92 @@ const AddTourForm = () => {
             )}
 
             <div className="space-y-4">
-              {days.map((day, idx) => (
-                <div key={idx} className="rounded-lg border p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-medium">Day {day.dayNumber}</h3>
-                    {days.length > 1 && (
+              {/* Reverse the array for rendering – newest day on top */}
+              {[...days].reverse().map((day) => {
+                // Find the original index for update/delete functions
+                const originalIndex = days.findIndex((d) => d.dayNumber === day.dayNumber);
+                return (
+                  <div key={day.dayNumber} className="rounded-lg border p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="font-medium">Day {day.dayNumber}</h3>
+                      {days.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDay(originalIndex)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" /> Remove
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Title (optional)</Label>
+                        <Input
+                          value={day.title}
+                          onChange={(e) => updateDay(originalIndex, "title", e.target.value)}
+                          placeholder="e.g. Arrival in Addis Ababa"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Bold Text (optional)</Label>
+                        <Input
+                          value={day.boldtext}
+                          onChange={(e) => updateDay(originalIndex, "boldtext", e.target.value)}
+                          placeholder="e.g. Free time"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <Label>Description (optional)</Label>
+                      <Textarea
+                        value={day.description}
+                        onChange={(e) => updateDay(originalIndex, "description", e.target.value)}
+                        rows={2}
+                        placeholder="What will happen during this day?"
+                      />
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <Label>Itinerary Items (optional)</Label>
+                      {day.items.map((item, iIdx) => (
+                        <div key={iIdx} className="flex gap-2">
+                          <Input
+                            value={item}
+                            onChange={(e) => updateDayItem(originalIndex, iIdx, e.target.value)}
+                          />
+                          {day.items.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeDayItem(originalIndex, iIdx)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeDay(idx)}
-                        className="text-destructive"
+                        onClick={() => addDayItem(originalIndex)}
                       >
-                        <Trash2 className="mr-1 h-3 w-3" /> Remove
+                        <Plus className="mr-1 h-3 w-3" /> Add Item
                       </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Title (optional)</Label>
-                      <Input
-                        value={day.title}
-                        onChange={(e) => updateDay(idx, "title", e.target.value)}
-                        placeholder="e.g. Arrival in Addis Ababa"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Bold Text (optional)</Label>
-                      <Input
-                        value={day.boldtext}
-                        onChange={(e) => updateDay(idx, "boldtext", e.target.value)}
-                        placeholder="e.g. Free time"
-                      />
                     </div>
                   </div>
-
-                  <div className="mt-3 space-y-2">
-                    <Label>Description (optional)</Label>
-                    <Textarea
-                      value={day.description}
-                      onChange={(e) => updateDay(idx, "description", e.target.value)}
-                      rows={2}
-                      placeholder="What will happen during this day?"
-                    />
-                  </div>
-
-                  <div className="mt-3 space-y-2">
-                    <Label>Itinerary Items (optional)</Label>
-                    {day.items.map((item, iIdx) => (
-                      <div key={iIdx} className="flex gap-2">
-                        <Input
-                          value={item}
-                          onChange={(e) => updateDayItem(idx, iIdx, e.target.value)}
-                        />
-                        {day.items.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeDayItem(idx, iIdx)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => addDayItem(idx)}
-                    >
-                      <Plus className="mr-1 h-3 w-3" /> Add Item
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+           
           </section>
 
           {/* Actions */}
